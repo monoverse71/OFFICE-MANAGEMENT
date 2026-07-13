@@ -25,7 +25,7 @@ import {
 
 export default function App() {
   const [role, setRole] = useState(currentUser.role)
-  const [expenses] = useState(initialExpenses)
+  const [expenses, setExpenses] = useState(initialExpenses)
   const [approvals, setApprovals] = useState(initialApprovals)
   const [taskList, setTaskList] = useState(initialTasks)
   const [notifications, setNotifications] = useState(initialNotifications)
@@ -42,6 +42,25 @@ export default function App() {
 
   function handleDecide(id, decision) {
     setApprovals((prev) => prev.filter((a) => a.id !== id))
+  }
+
+  function handleAddExpense(data) {
+    const record = {
+      id: `exp-${Date.now()}`,
+      status: 'pending_approval',
+      submitted_by: currentUser.full_name,
+      created_at: new Date().toISOString(),
+      ...data
+    }
+    setExpenses((prev) => [record, ...prev])
+  }
+
+  function handleUpdateExpense(id, data) {
+    setExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, ...data } : e)))
+  }
+
+  function handleDeleteExpense(id) {
+    setExpenses((prev) => prev.filter((e) => e.id !== id))
   }
 
   function handleToggleTask(id) {
@@ -98,7 +117,17 @@ export default function App() {
           }
         />
 
-        <Route path="expenses" element={<ExpensesPage expenses={expenses} />} />
+        <Route
+          path="expenses"
+          element={
+            <ExpensesPage
+              expenses={expenses}
+              onAddExpense={handleAddExpense}
+              onUpdateExpense={handleUpdateExpense}
+              onDeleteExpense={handleDeleteExpense}
+            />
+          }
+        />
 
         <Route
           path="approvals"
