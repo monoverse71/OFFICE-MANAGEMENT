@@ -1,0 +1,786 @@
+# Office Administration Management System
+## Production-Ready PostgreSQL Database Design (Version 1.0)
+
+**Prepared by:** Senior Database Architect
+**Platform:** PostgreSQL via Supabase (Auth, Storage, RLS)
+**Scope:** Complete relational schema for all 14 Version 1 modules
+**Format note:** No SQL syntax and no application code included, per instructions — all types, constraints, and rules are described in structured prose/tables. SQL implementation is reserved for the build phase.
+**Status:** Draft for Approval
+
+---
+
+## 1. Database Design Philosophy
+
+1. **Office-scoped from day one.** Every table carries an `office_id`, even though V1 operates a single office. This makes multi-branch expansion a data change, not a schema change.
+2. **Full audit trail by default.** Every major table carries `created_at`, `updated_at`, `created_by`, `updated_by`, and a `status` where applicable, satisfying the audit requirement without needing per-table history tables.
+3. **Data-driven over hardcoded.** Statuses, roles, permissions, and asset/document categories live in lookup tables rather than fixed code lists, so the business can extend them without a migration.
+4. **One reusable engine per cross-cutting concern.** Approvals, audit logging, and notifications are each modeled once as generic, polymorphic engines — reused by every module, present and future — rather than rebuilt per module.
+5. **UUID primary keys throughout.** Matches Supabase Auth's UUID user identifiers, avoids enumeration risk, and supports safe multi-office/multi-environment merges later.
+6. **RLS is a first-class design input, not an afterthought.** Every table is shaped so that authorization can be expressed as a simple, indexable filter (`office_id` + role check), which keeps future RLS policies fast and easy to reason about.
+7. **Denormalize only where reporting/query needs justify it.** A small number of convenience fields (e.g., `expenses.approved_by`) are intentionally duplicated from the generic approval engine to keep common reports and lists fast, while the full decision history remains in the audit tables as the source of truth.
+8. **Soft-delete, never hard-delete**, on any record with real-world/business or financial meaning. Deletion is represented as a status change, preserving audit integrity.
+
+---
+
+## 2. Naming Convention
+
+| Element | Convention | Example |
+|---|---|---|
+| Table names | `snake_case`, plural | `expense_categories`, `staff_directory` |
+| Column names | `snake_case`, singular | `expense_date`, `created_by` |
+| Primary key | Always `id` | `id` |
+| Foreign key | `{referenced_table_singular}_id`, or a clear semantic name | `category_id`, `assigned_to`, `submitted_by` |
+| Boolean columns | `is_` / `has_` prefix | `is_active`, `has_attachment` |
+| Status/lookup foreign keys | `{concept}_status_id` | `employment_status_id`, `condition_status_id` |
+| Junction (many-to-many) tables | `{table_a_singular}_{table_b_singular}` | `document_tags` |
+| Timestamp columns | `_at` suffix | `created_at`, `approved_at` |
+| Date-only columns | `_date` suffix | `expense_date`, `purchase_date` |
+| Polymorphic reference columns | `module_key` + `record_id` (paired) | used in `approval_requests`, `activity_logs`, `notifications` |
+
+---
+
+## 3. Table List
+
+### 3.1 Core / Reference
+1. `offices`
+2. `roles`
+3. `permissions`
+4. `statuses`
+5. `tags`
+
+### 3.2 Identity & Access
+6. `users`
+
+### 3.3 Expense Module
+7. `expense_categories`
+8. `expenses`
+
+### 3.4 Approval Workflow (Generic Engine)
+9. `approval_requests`
+10. `approval_actions`
+
+### 3.5 Staff & Inventory
+11. `staff_directory`
+12. `asset_categories`
+13. `inventory_items`
+14. `purchases`
+
+### 3.6 Documents
+15. `documents`
+16. `document_versions`
+17. `document_tags` (junction)
+
+### 3.7 Tasks
+18. `tasks`
+19. `task_reminders`
+
+### 3.8 Notifications & Audit
+20. `notifications`
+21. `activity_logs`
+
+### 3.9 Settings
+22. `company_settings`
+
+### 3.10 Recommended Additions (flagged before finalizing, per your instruction)
+
+The original module list did not explicitly request these, but they are needed for the requirements you did specify. Each is included in Section 4 and marked **[Recommended Addition]** at first mention:
+
+- **`asset_categories`** — you asked for asset categories (Furniture, Electronics, Stationery) to be supported; a lookup table (rather than a hardcoded list on `inventory_items`) lets new categories be added without a migration and keeps category data consistent for reporting.
+- **`tags`** + **`document_tags`** — you explicitly listed "Tags" under the Document module; a normalized tag table with a junction table supports fast, indexed multi-tag search and reuse of the same tag across documents, which a single text column could not do efficiently.
+- **Denormalized `approved_by` / `approved_date` / `rejected_reason` columns directly on `expenses`** — you explicitly requested these as expense fields. They are populated from the generic approval engine (Section 4.4) but kept as direct columns on `expenses` so expense lists and monthly reports don't need to join through the approval tables for the most common queries.
+- **`asset_code` on `inventory_items`** — you explicitly requested this; added as a unique, human-readable identifier (e.g., for barcode/label printing), separate from the internal UUID `id`.
+- **Materialized summary approach for Reports (not a new table)** — see Section 12; rather than adding speculative "report tables" now, the schema is indexed so summary views can be added later without redesign.
+
+No other tables are recommended for addition at this stage — the above closes every gap between your listed module requirements and the base schema; everything else maps directly to a module you specified.
+
+---
+
+## 4. Detailed Table Definitions
+
+> **Standard columns** (repeated on nearly every table; shown once here, not repeated per table below unless a table deviates):
+> `id` (UUID, PK, required, default: auto-generated) · `office_id` (UUID, FK → offices.id, required) · `created_at` (timestamp with time zone, required, default: current time) · `updated_at` (timestamp with time zone, required, default: current time, auto-updated) · `created_by` (UUID, FK → users.id, nullable) · `updated_by` (UUID, FK → users.id, nullable) · `status` (where applicable — see per-table notes; typically expressed as a foreign key to `statuses` rather than a raw text column).
+
+### 4.1 `offices`
+**Purpose:** Root entity representing a physical office/branch; enables future multi-branch operation without schema changes.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| name | Text | No | — | |
+| address | Text | Yes | — | |
+| phone | Text | Yes | — | |
+| is_main_office | Boolean | No | true | |
+| timezone | Text | No | 'Asia/Dhaka' | |
+| is_active | Boolean | No | true | |
+| created_at / updated_at / created_by / updated_by | standard | — | — | No `office_id` (this table is the root) |
+
+- **Primary Key:** id
+- **Foreign Keys:** none
+- **Unique Rules:** `name` unique; exactly one row may have `is_main_office = true`
+- **Recommended Indexes:** none required beyond PK at V1 volume (single row)
+
+---
+
+### 4.2 `roles`
+**Purpose:** Defines the four V1 roles (Chairman, Vice Chairman, Admin, Employee) and any future roles, data-driven rather than hardcoded.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| name | Text | No | — | e.g. "Chairman" |
+| description | Text | Yes | — | |
+| hierarchy_level | Integer | No | 0 | Used for approval-threshold comparisons |
+| is_system_role | Boolean | No | false | true for the 4 seeded roles; protects against deletion |
+| created_at / updated_at / created_by / updated_by | standard | — | — | No `office_id` — roles are company-wide, not per-branch |
+
+- **Primary Key:** id
+- **Unique Rules:** `name` unique
+- **Recommended Indexes:** none beyond unique constraint at this scale
+
+---
+
+### 4.3 `permissions`
+**Purpose:** Maps each role to allowed actions per module, driving both navigation visibility and RLS policy logic.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| role_id | UUID | No | — | FK → roles.id |
+| module_key | Text | No | — | e.g. "expenses" |
+| action | Text | No | — | one of: create, read, update, delete, approve, export |
+| is_allowed | Boolean | No | true | |
+| created_at / updated_at / created_by / updated_by | standard | — | — | No `office_id` — permissions are role-based, company-wide |
+
+- **Primary Key:** id
+- **Foreign Keys:** role_id → roles.id (cascade delete with role)
+- **Unique Rules:** combination of (role_id, module_key, action) must be unique
+- **Recommended Indexes:** on module_key (permission lookups are frequently filtered by module during navigation rendering)
+
+---
+
+### 4.4 `statuses`
+**Purpose:** Centralized status/lookup values reused across modules instead of hardcoded value lists, so a new status can be added by inserting a row.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| module_key | Text | No | — | e.g. "expenses", "tasks", "inventory" |
+| code | Text | No | — | machine-readable, e.g. "pending_approval" |
+| label | Text | No | — | human-readable, e.g. "Pending Approval" |
+| sort_order | Integer | No | 0 | display ordering |
+| is_active | Boolean | No | true | |
+| created_at / updated_at / created_by / updated_by | standard | — | — | No `office_id` — statuses are company-wide policy |
+
+- **Primary Key:** id
+- **Unique Rules:** combination of (module_key, code) must be unique
+- **Recommended Indexes:** on module_key
+
+**Seed values required:**
+- `expenses`: draft, pending_approval, approved, rejected, paid, archived
+- `tasks`: todo, in_progress, completed, overdue, cancelled
+- `inventory` (condition): new, good, damaged, under_repair
+- `staff` (employment): active, inactive, on_leave
+- `approval` (envelope status): pending, approved, rejected, paid, archived
+
+---
+
+### 4.5 `tags` **[Recommended Addition]**
+**Purpose:** Reusable labels for documents (and extensible to other modules later) supporting flexible categorization beyond fixed category values.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| name | Text | No | — | e.g. "urgent", "legal", "renewal-2026" |
+| created_at / updated_at / created_by / updated_by | standard | — | — | |
+
+- **Primary Key:** id
+- **Unique Rules:** combination of (office_id, name) must be unique
+- **Recommended Indexes:** on name (search/autocomplete)
+
+---
+
+### 4.6 `users`
+**Purpose:** Application identity table, linked one-to-one with Supabase Auth; the central actor reference for nearly every audit column in the system.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| auth_user_id | UUID | No | — | FK → Supabase auth.users.id |
+| full_name | Text | No | — | |
+| email | Text | No | — | |
+| phone | Text | Yes | — | |
+| role_id | UUID | No | — | FK → roles.id |
+| staff_id | UUID | Yes | — | FK → staff_directory.id (optional link) |
+| is_active | Boolean | No | true | acts as the account's status flag |
+| last_login_at | Timestamp | Yes | — | |
+| created_at / updated_at / created_by / updated_by | standard | — | — | |
+
+- **Primary Key:** id
+- **Foreign Keys:** office_id → offices.id · auth_user_id → auth.users.id (cascade on auth user deletion) · role_id → roles.id (restrict deletion) · staff_id → staff_directory.id (set null on staff record deletion)
+- **Unique Rules:** auth_user_id unique; email unique
+- **Recommended Indexes:** on role_id · on office_id · on is_active (frequently filtered login/user-list queries)
+- **Relationships:** one role, optionally one staff record; referenced by created_by/updated_by across almost all tables
+
+---
+
+### 4.7 `expense_categories`
+**Purpose:** Classifies expenses (Utilities, Rent, Maintenance, Refreshments, Travel, etc.) for filtering and monthly summary reporting.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| name | Text | No | — | |
+| description | Text | Yes | — | |
+| is_active | Boolean | No | true | acts as this table's status flag |
+| created_at / updated_at / created_by / updated_by | standard | — | — | |
+
+- **Primary Key:** id
+- **Foreign Keys:** office_id → offices.id
+- **Unique Rules:** combination of (office_id, name) must be unique
+- **Recommended Indexes:** on is_active
+
+---
+
+### 4.8 `expenses`
+**Purpose:** Core transactional record for the Expense module — the most heavily queried table in the system (dashboard, reports, history).
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| category_id | UUID | No | — | FK → expense_categories.id |
+| title | Text | No | — | |
+| description | Text | Yes | — | |
+| amount | Numeric(12,2) | No | — | must be greater than zero |
+| expense_date | Date | No | — | must not be a future date |
+| payment_method | Text | No | — | one of: cash, bank, mobile_banking, card |
+| bill_document_id | UUID | Yes | — | FK → documents.id |
+| status_id | UUID | No | status "draft" | FK → statuses.id |
+| submitted_by | UUID | No | — | FK → users.id |
+| approved_by | UUID | Yes | — | FK → users.id — **[Recommended Addition — you requested this]** |
+| approved_date | Timestamp | Yes | — | **[Recommended Addition — you requested this]** |
+| rejected_reason | Text | Yes | — | **[Recommended Addition — you requested this]** |
+| created_at / updated_at / created_by / updated_by | standard | — | — | |
+
+- **Primary Key:** id
+- **Foreign Keys:** category_id → expense_categories.id (restrict) · bill_document_id → documents.id (set null) · status_id → statuses.id (restrict) · submitted_by → users.id (restrict) · approved_by → users.id (set null)
+- **Constraints:** amount > 0 · expense_date ≤ current date · payment_method restricted to allowed list
+- **Recommended Indexes:** on (office_id, expense_date, descending) for dashboard/date-range queries · on status_id · on category_id · on submitted_by
+- **Relationships:** many-to-one with expense_categories; optional one-to-one with a generic `approval_requests` envelope (module_key = "expenses"); `approved_by`/`approved_date`/`rejected_reason` are convenience copies kept in sync with the corresponding `approval_actions` row by application logic — the `approval_actions` table remains the authoritative, immutable history
+
+---
+
+### 4.9 `approval_requests`
+**Purpose:** Generic approval envelope reused by any module requiring approval (expenses today; purchases and future modules later) without a dedicated table per module.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| module_key | Text | No | — | e.g. "expenses", "purchases" |
+| record_id | UUID | No | — | id of the record being approved (polymorphic — no hard FK, see Section 5) |
+| current_status_id | UUID | No | status "pending" | FK → statuses.id |
+| requested_by | UUID | No | — | FK → users.id |
+| approval_threshold_used | Numeric(12,2) | Yes | — | records which threshold applied at decision time |
+| created_at / updated_at / created_by / updated_by | standard | — | — | |
+
+- **Primary Key:** id
+- **Foreign Keys:** current_status_id → statuses.id (restrict) · requested_by → users.id (restrict) · office_id → offices.id
+- **Unique Rules:** combination of (module_key, record_id) must be unique — one active envelope per record
+- **Constraints:** module_key restricted to a controlled, extensible list of module keys that support approvals
+- **Recommended Indexes:** on current_status_id · on module_key · on (module_key, record_id)
+
+---
+
+### 4.10 `approval_actions`
+**Purpose:** Immutable, append-only history of every decision made against an approval request — the authoritative compliance record.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| approval_request_id | UUID | No | — | FK → approval_requests.id |
+| action | Text | No | — | one of: submitted, approved, rejected, paid, archived |
+| acted_by | UUID | No | — | FK → users.id |
+| comment | Text | Yes | — | used for rejection reasons and notes |
+| action_at | Timestamp | No | current time | |
+| created_by | UUID | Yes | — | FK → users.id |
+
+- **Primary Key:** id
+- **Foreign Keys:** approval_request_id → approval_requests.id (cascade) · acted_by → users.id (restrict)
+- **Constraints:** action restricted to allowed list; table is insert-only (no update/delete permitted for any role, including Admin)
+- **Recommended Indexes:** on (approval_request_id, action_at)
+- **Note:** Deliberately omits `updated_at`/`updated_by` (rows are never modified after insert)
+
+---
+
+### 4.11 `staff_directory`
+**Purpose:** Lightweight staff record (name, role, contact) independent of full HR — supports both login-enabled and non-login staff.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| full_name | Text | No | — | |
+| designation | Text | Yes | — | |
+| department | Text | Yes | — | |
+| email | Text | Yes | — | |
+| phone | Text | Yes | — | |
+| photo_document_id | UUID | Yes | — | FK → documents.id |
+| joining_date | Date | Yes | — | |
+| employment_status_id | UUID | No | status "active" | FK → statuses.id |
+| created_at / updated_at / created_by / updated_by | standard | — | — | |
+
+- **Primary Key:** id
+- **Foreign Keys:** photo_document_id → documents.id (set null) · employment_status_id → statuses.id (restrict)
+- **Recommended Indexes:** on (office_id, employment_status_id) · on full_name (search)
+- **Relationships:** referenced optionally by users.staff_id; referenced by inventory_items.assigned_to
+
+---
+
+### 4.12 `asset_categories` **[Recommended Addition]**
+**Purpose:** You requested Furniture, Electronics, and Stationery as inventory categories; a lookup table lets categories be extended (e.g., "Vehicles") without a migration and keeps values consistent for reporting.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| name | Text | No | — | e.g. "Furniture", "Electronics", "Stationery", "Equipment" |
+| is_active | Boolean | No | true | |
+| created_at / updated_at / created_by / updated_by | standard | — | — | |
+
+- **Primary Key:** id
+- **Unique Rules:** combination of (office_id, name) must be unique
+- **Recommended Indexes:** on is_active
+
+---
+
+### 4.13 `inventory_items`
+**Purpose:** Tracks office furniture, electronics, and stationery — condition, assignment, warranty, and low-stock alerting.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| asset_code | Text | No | — | **[Recommended Addition — you requested this]**; human-readable unique identifier for labeling/barcoding |
+| name | Text | No | — | |
+| category_id | UUID | No | — | FK → asset_categories.id |
+| condition_status_id | UUID | No | status "new" | FK → statuses.id |
+| quantity | Integer | No | 1 | must be ≥ 0 |
+| low_stock_threshold | Integer | No | 0 | must be ≥ 0 |
+| purchase_id | UUID | Yes | — | FK → purchases.id |
+| purchase_date | Date | Yes | — | duplicated from purchases for fast filtering when no purchase record exists |
+| warranty_expiry_date | Date | Yes | — | |
+| assigned_to | UUID | Yes | — | FK → staff_directory.id |
+| location | Text | Yes | — | |
+| created_at / updated_at / created_by / updated_by | standard | — | — | |
+
+- **Primary Key:** id
+- **Foreign Keys:** category_id → asset_categories.id (restrict) · condition_status_id → statuses.id (restrict) · purchase_id → purchases.id (set null) · assigned_to → staff_directory.id (set null)
+- **Unique Rules:** asset_code unique per office
+- **Constraints:** quantity ≥ 0 · low_stock_threshold ≥ 0 · warranty_expiry_date, if present, should be on or after purchase_date
+- **Recommended Indexes:** on (office_id, category_id) · on (quantity, low_stock_threshold) for low-stock alert queries · on assigned_to · on asset_code
+
+---
+
+### 4.14 `purchases`
+**Purpose:** Records one-off purchases of assets/inventory, distinct from recurring operational expenses.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| vendor_name | Text | No | — | |
+| vendor_contact | Text | Yes | — | |
+| purchase_date | Date | No | — | |
+| total_amount | Numeric(12,2) | No | — | must be greater than zero |
+| invoice_document_id | UUID | Yes | — | FK → documents.id |
+| created_at / updated_at / created_by / updated_by | standard | — | — | |
+
+- **Primary Key:** id
+- **Foreign Keys:** invoice_document_id → documents.id (set null)
+- **Constraints:** total_amount > 0
+- **Recommended Indexes:** on (office_id, purchase_date, descending)
+- **Relationships:** referenced by inventory_items.purchase_id; optionally linked to approval_requests (module_key = "purchases")
+
+---
+
+### 4.15 `documents`
+**Purpose:** Central registry for all uploaded files (contracts, bills, licenses, agreements) — the stable "pointer" record; actual file data lives in `document_versions`.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| title | Text | No | — | |
+| category | Text | No | — | one of: contract, bill, trade_license, tin, office_agreement, asset_photo, staff_photo, other |
+| current_version_id | UUID | Yes | — | FK → document_versions.id (deferred reference — see Section 8) |
+| uploaded_by | UUID | No | — | FK → users.id |
+| created_at / updated_at / created_by / updated_by | standard | — | — | |
+
+- **Primary Key:** id
+- **Foreign Keys:** current_version_id → document_versions.id (set null; deferred) · uploaded_by → users.id (restrict)
+- **Constraints:** category restricted to allowed list
+- **Recommended Indexes:** on (office_id, category) · full-text search index on title
+- **Relationships:** one-to-many with document_versions; many-to-many with tags via document_tags
+
+---
+
+### 4.16 `document_versions`
+**Purpose:** Preserves every uploaded version of a document — required for contracts/licenses where prior versions must be retained for compliance.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| document_id | UUID | No | — | FK → documents.id |
+| storage_path | Text | No | — | path within Supabase Storage bucket |
+| file_name | Text | No | — | |
+| file_size | Integer (large) | No | — | must be greater than zero |
+| mime_type | Text | No | — | one of: application/pdf, image/png, image/jpeg |
+| version_number | Integer | No | 1 | must be greater than zero; auto-incremented per document |
+| uploaded_by | UUID | No | — | FK → users.id |
+| uploaded_at | Timestamp | No | current time | |
+
+- **Primary Key:** id
+- **Foreign Keys:** document_id → documents.id (cascade) · uploaded_by → users.id (restrict)
+- **Unique Rules:** combination of (document_id, version_number) must be unique
+- **Recommended Indexes:** on document_id
+- **Note:** No standard updated_at/updated_by — versions are immutable once created; a correction is a new version, not an edit
+
+---
+
+### 4.17 `document_tags` **[Recommended Addition — junction table]**
+**Purpose:** Many-to-many link supporting the "Tags" requirement for the Document module.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| document_id | UUID | No | — | FK → documents.id |
+| tag_id | UUID | No | — | FK → tags.id |
+| created_at / created_by | standard | — | — | no updated_at needed — a tag link is added or removed, not edited |
+
+- **Primary Key:** id
+- **Foreign Keys:** document_id → documents.id (cascade) · tag_id → tags.id (cascade)
+- **Unique Rules:** combination of (document_id, tag_id) must be unique
+- **Recommended Indexes:** on tag_id (tag-based document search) · on document_id
+
+---
+
+### 4.18 `tasks`
+**Purpose:** Daily task assignment, priority, and completion tracking.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| title | Text | No | — | |
+| description | Text | Yes | — | |
+| assigned_to | UUID | No | — | FK → users.id |
+| priority | Text | No | 'medium' | one of: low, medium, high, urgent |
+| due_date | Timestamp | Yes | — | |
+| status_id | UUID | No | status "todo" | FK → statuses.id |
+| completed_at | Timestamp | Yes | — | |
+| completion_notes | Text | Yes | — | |
+| created_at / updated_at / created_by / updated_by | standard | — | — | |
+
+- **Primary Key:** id
+- **Foreign Keys:** assigned_to → users.id (restrict) · status_id → statuses.id (restrict)
+- **Constraints:** priority restricted to allowed list; completed_at should only be populated when status resolves to "completed"
+- **Recommended Indexes:** on (office_id, assigned_to, status_id) · on due_date (overdue computation and reminder scheduling)
+
+---
+
+### 4.19 `task_reminders`
+**Purpose:** Scheduled reminders tied to a task, feeding the Notifications module.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| task_id | UUID | No | — | FK → tasks.id |
+| remind_at | Timestamp | No | — | should be on or before the task's due_date |
+| delivered | Boolean | No | false | |
+| delivered_at | Timestamp | Yes | — | |
+| created_at / updated_at / created_by / updated_by | standard | — | — | |
+
+- **Primary Key:** id
+- **Foreign Keys:** task_id → tasks.id (cascade)
+- **Recommended Indexes:** on (remind_at, delivered) for efficient due-reminder polling
+
+---
+
+### 4.20 `notifications`
+**Purpose:** Generic in-app notification center, publishable from any module (tasks, approvals, inventory alerts, document expiry).
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| recipient_id | UUID | No | — | FK → users.id |
+| event_type | Text | No | — | e.g. "task_due", "expense_pending_approval" |
+| module_key | Text | No | — | polymorphic reference, paired with reference_id |
+| reference_id | UUID | Yes | — | id of the related record (no hard FK — see Section 5) |
+| title | Text | No | — | |
+| message | Text | Yes | — | |
+| is_read | Boolean | No | false | |
+| read_at | Timestamp | Yes | — | |
+| created_at / updated_at / created_by / updated_by | standard | — | — | |
+
+- **Primary Key:** id
+- **Foreign Keys:** recipient_id → users.id (cascade)
+- **Recommended Indexes:** on (recipient_id, is_read, created_at descending) — the primary "unread feed" query
+
+---
+
+### 4.21 `activity_logs`
+**Purpose:** Company-wide, append-only audit trail covering every significant action across all modules — the backbone of the Audit requirement (expense created/updated/approved/rejected, task completed, inventory updated, document uploaded, login, logout).
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| actor_id | UUID | Yes | — | FK → users.id (nullable so log survives user deletion) |
+| module_key | Text | No | — | e.g. "expenses", "tasks", "inventory", "auth" |
+| action | Text | No | — | one of: create, update, delete, approve, reject, login, logout |
+| record_id | UUID | Yes | — | polymorphic reference, no hard FK |
+| before_data | JSON | Yes | — | snapshot prior to change |
+| after_data | JSON | Yes | — | snapshot after change |
+| ip_address | Text | Yes | — | |
+| occurred_at | Timestamp | No | current time | |
+
+- **Primary Key:** id
+- **Foreign Keys:** actor_id → users.id (set null)
+- **Constraints:** table is insert-only; no update/delete permitted for any role including Admin
+- **Recommended Indexes:** on (module_key, record_id) · on (actor_id, occurred_at descending) · on occurred_at descending (recent activity feed)
+- **Note:** No standard `created_by`/`updated_by`/`updated_at` — this table is itself the audit mechanism
+
+---
+
+### 4.22 `company_settings`
+**Purpose:** Single-row-per-office configuration: company info, currency, approval thresholds, backup preferences.
+
+| Column | Data Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| id | UUID | No | auto-generated | Primary Key |
+| office_id | UUID | No | — | FK → offices.id |
+| company_name | Text | No | — | |
+| logo_document_id | UUID | Yes | — | FK → documents.id |
+| address | Text | Yes | — | |
+| currency | Text | No | 'BDT' | |
+| timezone | Text | No | 'Asia/Dhaka' | |
+| approval_threshold_admin | Numeric(12,2) | No | 50000.00 | |
+| approval_threshold_vice_chairman | Numeric(12,2) | No | 500000.00 | |
+| backup_frequency | Text | No | 'daily' | one of: daily, weekly, monthly |
+| created_at / updated_at / created_by / updated_by | standard | — | — | |
+
+- **Primary Key:** id
+- **Foreign Keys:** office_id → offices.id (cascade) · logo_document_id → documents.id (set null)
+- **Unique Rules:** office_id unique (exactly one settings row per office)
+- **Constraints:** approval_threshold_admin must be less than approval_threshold_vice_chairman; both must be positive
+
+---
+
+## 5. Relationships
+
+| Relationship | Type | Notes |
+|---|---|---|
+| offices → (nearly all tables) | one-to-many | via office_id on every scoped table |
+| roles → users | one-to-many | each user has exactly one role |
+| roles → permissions | one-to-many | |
+| users → staff_directory | one-to-one (optional) | via users.staff_id |
+| staff_directory → inventory_items | one-to-many | via assigned_to |
+| expense_categories → expenses | one-to-many | |
+| expenses → documents | many-to-one (optional) | via bill_document_id |
+| expenses → approval_requests | one-to-one (optional, polymorphic) | module_key = "expenses" |
+| purchases → documents | many-to-one (optional) | via invoice_document_id |
+| purchases → approval_requests | one-to-one (optional, polymorphic) | module_key = "purchases" |
+| purchases → inventory_items | one-to-many | via purchase_id |
+| approval_requests → approval_actions | one-to-many | full decision history |
+| asset_categories → inventory_items | one-to-many | |
+| documents → document_versions | one-to-many | version history |
+| documents → document_tags → tags | many-to-many | via junction table |
+| users → tasks | one-to-many | via assigned_to |
+| tasks → task_reminders | one-to-many | |
+| users → notifications | one-to-many | via recipient_id |
+| users → activity_logs | one-to-many (optional) | via actor_id |
+| offices → company_settings | one-to-one | |
+
+**Polymorphic relationships (no enforced foreign key, by design):**
+- `approval_requests.record_id` → the id of a row in whichever table `module_key` names (e.g., `expenses`, `purchases`)
+- `activity_logs.record_id` → the id of a row in whichever table `module_key` names (any module)
+- `notifications.reference_id` → the id of a row in whichever table `module_key` names (any module)
+
+These three are intentionally not hard foreign keys, because PostgreSQL cannot constrain a column to reference "one of several possible tables." This is what allows the approval, audit, and notification engines to be built once and reused by every current and future module. Integrity for these columns is maintained at the application/Edge Function layer.
+
+---
+
+## 6. ER Diagram (Text Form)
+
+```
+                       ┌────────────┐
+                       │  offices   │
+                       └─────┬──────┘
+                             │ office_id (on nearly every table below)
+        ┌────────────────────┼─────────────────────────────────────────┐
+        │                    │                                         │
+   ┌────▼─────┐        ┌─────▼─────┐                              ┌────▼─────┐
+   │  roles   │──┐      │   users   │──────────────┐               │ statuses │
+   └────┬─────┘  │      └─────┬─────┘              │               └────┬─────┘
+        │        │            │ staff_id (opt)      │ created_by/       │ status_id
+   ┌────▼─────┐  │      ┌─────▼──────────┐          │ updated_by on     │ (referenced by
+   │permissions│ │      │ staff_directory │          │ almost every      │  many tables)
+   └──────────┘  │      └─────┬───────────┘          │ table             │
+                 │            │ assigned_to           │                   │
+                 │      ┌─────▼─────────┐             │                   │
+                 │      │inventory_items│◄──┐         │                   │
+                 │      └─────┬─────────┘   │         │                   │
+                 │            │ purchase_id  │category_id             │
+                 │      ┌─────▼─────┐  ┌─────▼──────────┐                │
+                 │      │ purchases │  │ asset_categories│                │
+                 │      └─────┬─────┘  └─────────────────┘                │
+                 │            │ invoice_document_id                       │
+                 │            │                                           │
+   ┌─────────────▼──┐   ┌─────▼─────┐        ┌──────────────────┐        │
+   │expense_categories│─▶│  expenses │───────▶│approval_requests │◄───────┘
+   └──────────────────┘  └─────┬─────┘        └─────────┬─────────┘
+                                │ bill_document_id         │
+                                │                    ┌─────▼─────────┐
+                          ┌─────▼─────┐              │approval_actions│
+                          │ documents │              └────────────────┘
+                          └─────┬─────┘
+                    ┌───────────┼────────────┐
+              ┌─────▼──────┐ ┌──▼───────────┐
+              │document_    │ │document_tags │──▶ tags
+              │versions     │ └──────────────┘
+              └─────────────┘
+
+   ┌──────┐        ┌───────────────┐        ┌───────────────┐
+   │ tasks │──────▶ │task_reminders │        │ notifications │
+   └───────┘        └───────────────┘        └───────────────┘
+
+   ┌───────────────┐        ┌──────────────────┐
+   │ activity_logs │        │ company_settings │
+   └───────────────┘        └──────────────────┘
+```
+
+---
+
+## 7. Index Strategy
+
+| Priority | Index | Rationale |
+|---|---|---|
+| High | expenses (office_id, expense_date desc) | Dashboard "today/this month" and history queries — most frequent read pattern in the system |
+| High | expenses (status_id) | Pending-approval lists |
+| High | notifications (recipient_id, is_read, created_at desc) | Unread notification feed loads on every page view |
+| High | activity_logs (occurred_at desc) | Recent activity widget on Dashboard |
+| High | activity_logs (module_key, record_id) | "View history for this record" lookups |
+| High | inventory_items (quantity, low_stock_threshold) | Low-stock alert widget on Dashboard |
+| Medium | tasks (office_id, assigned_to, status_id) | "My tasks" and "all tasks" filtered views |
+| Medium | tasks (due_date) | Overdue computation and reminder scheduling |
+| Medium | approval_requests (module_key, record_id) | Approval envelope lookup from a source record |
+| Medium | documents (office_id, category) | Document library filtering |
+| Medium | document_tags (tag_id) | Tag-based document search |
+| Medium | purchases (office_id, purchase_date desc) | Purchase history |
+| Low | staff_directory (full_name) | Directory search/autocomplete |
+| Low | inventory_items (asset_code) | Barcode/asset-code lookup |
+| Low | documents (full-text index on title) | Document search bar |
+
+General rule: every table's `office_id` column is implicitly part of the index strategy because it will appear in every RLS policy filter; where a table is also commonly filtered by a second column (date, status), a composite index leading with `office_id` is preferred over two separate single-column indexes.
+
+---
+
+## 8. Constraints
+
+| Constraint Type | Applied To | Rule |
+|---|---|---|
+| Value range | expenses.amount, purchases.total_amount | must be greater than zero |
+| Value range | inventory_items.quantity, low_stock_threshold | must be zero or greater |
+| Date logic | expenses.expense_date | must not be after the current date |
+| Date logic | inventory_items.warranty_expiry_date | should be on or after purchase_date |
+| Date logic | company_settings thresholds | approval_threshold_admin must be less than approval_threshold_vice_chairman |
+| Allowed-value list | expenses.payment_method | cash, bank, mobile_banking, card |
+| Allowed-value list | tasks.priority | low, medium, high, urgent |
+| Allowed-value list | documents.category | contract, bill, trade_license, tin, office_agreement, asset_photo, staff_photo, other |
+| Allowed-value list | approval_actions.action | submitted, approved, rejected, paid, archived |
+| Allowed-value list | activity_logs.action | create, update, delete, approve, reject, login, logout |
+| Uniqueness | offices.name; roles.name; users.email/auth_user_id; expense_categories(office_id,name); asset_categories(office_id,name); inventory_items.asset_code; tags(office_id,name); documents_tags(document_id,tag_id); approval_requests(module_key,record_id); document_versions(document_id,version_number); company_settings.office_id | prevents duplicate/ambiguous records |
+| Referential integrity | all standard foreign keys | restrict deletion where the child data has financial/legal significance (e.g., cannot delete a category with expenses); set null where the relationship is a convenience link (e.g., a deleted staff photo document) |
+| Deferred reference | documents.current_version_id ↔ document_versions.document_id | the two tables reference each other; the constraint is deferred so the first version can be created after its parent document |
+
+---
+
+## 9. Validation Rules
+
+| Module | Rule |
+|---|---|
+| Expenses | Amount must be positive; category required; date cannot be in the future; a bill/receipt upload is strongly recommended above a configurable threshold (enforced at the application layer using company_settings, not a hard database rule, since the threshold itself is configurable) |
+| Approvals | A user cannot approve an expense/purchase they themselves submitted (segregation of duties — enforced at application/Edge Function layer since it depends on comparing two different tables' user references) |
+| Inventory | Quantity and low-stock threshold cannot be negative; low-stock alert is computed at query time (quantity ≤ threshold), not stored, to avoid stale flags |
+| Documents | File type restricted to PDF/PNG/JPEG; file size limit enforced at Storage-policy layer; title required |
+| Tasks | Due date required for reminders to function; completed_at should only be set when status is "completed"; assignee must be an active user |
+| Purchases | Vendor name required; total amount positive; invoice document strongly recommended but not hard-blocked |
+| Users | Email must be unique and valid format; a user cannot be deactivated while they have unresolved approval requests assigned to them (cross-table rule, enforced at application layer) |
+| Staff Directory | Full name required; email format validated at application layer when provided |
+
+---
+
+## 10. RLS Strategy
+
+1. **Office isolation, universally applied.** Every table's RLS policy includes a check that `office_id` matches the authenticated user's own `office_id` (looked up via `users.auth_user_id = auth.uid()`). This single pattern, applied consistently, is what makes multi-office data isolation automatic once multi-branch launches.
+2. **Role-based action policies.** SELECT/INSERT/UPDATE/DELETE policies per table reference the `permissions` table (joined through the user's `role_id`) rather than hardcoding role names into each policy — keeps policies stable even as role permissions are tuned over time.
+3. **Row ownership policies** for personal-scope data (e.g., an Employee can read/update their own `tasks` where `assigned_to = auth.uid()`-derived user id; can read their own `notifications`).
+4. **Append-only tables locked down further.** `activity_logs` and `approval_actions` grant INSERT only (via trigger/Edge Function execution context), with no UPDATE or DELETE policy for any role, including Admin — this is enforced at the RLS layer, not just convention.
+5. **Elevated operations via Edge Functions, not direct table grants.** Approval decisions, cross-module writes (e.g., approving an expense also writes an activity log and a notification) are executed through Edge Functions using the service role, so RLS on the underlying tables can stay strict for direct client access while these coordinated operations still succeed.
+6. **Storage policies mirror table policies.** Supabase Storage bucket policies check the same role/office logic as the corresponding `documents`/`document_versions` RLS policies, so file access permissions never diverge from data access permissions.
+7. **Settings table restricted tightly.** `company_settings` write access limited to Chairman/Vice Chairman/Admin roles only, per the approved permission matrix; Employees get read-only access to non-sensitive fields (e.g., currency, company name) if needed by the UI.
+
+---
+
+## 11. Storage Bucket Structure
+
+| Bucket | Purpose | Access Pattern |
+|---|---|---|
+| `documents` | Contracts, trade license, TIN, office agreements | Restricted to Chairman/Vice Chairman/Admin for write; broader read per document category if needed |
+| `bills` | Expense receipts and purchase invoices | Any authenticated user can upload (their own submissions); read scoped by role and office |
+| `avatars` | Staff/user profile photos | Self-upload by the staff member (if login-enabled) or Admin; public read within the office only |
+
+**Path convention:** `{office_id}/{module_key}/{record_id}/{version_number}_{file_name}`
+
+This mirrors the `document_versions.storage_path` structure, keeps files logically grouped per office (supporting future multi-branch storage segregation), and makes orphaned-file cleanup jobs straightforward — any storage object whose path doesn't correspond to a live `document_versions` row is a cleanup candidate.
+
+---
+
+## 12. Future Expansion Notes
+
+- **Multi-office rollout:** Add new rows to `offices`; assign new users/data going forward with the new `office_id`. Every RLS policy and index already accounts for this — no schema change needed.
+- **New modules adopting the approval engine:** Extend the allowed-value list on `approval_requests.module_key` — a single, low-risk change, no new table.
+- **New modules adopting the audit engine:** No schema change at all; `activity_logs.module_key` already accepts any module name — only a new trigger on the new module's table is needed.
+- **New statuses for any module:** Insert a row into `statuses` — zero migrations.
+- **Reporting growth:** Rather than pre-building speculative report tables now, the schema is indexed (Section 7) so that summary/materialized views (e.g., a monthly expense summary view) can be layered on top later without touching the underlying transactional tables — satisfying your requirement that reports can be built "without redesigning the database."
+- **HR/Payroll expansion:** `staff_directory` was deliberately kept lightweight so a future HR module can extend it (e.g., a linked `staff_employment_details` table) rather than replace it.
+- **CRM/Sales expansion:** Can reuse `documents`, `approval_requests`, `activity_logs`, and `notifications` engines directly — no modification to this schema required, only additive new tables.
+
+---
+
+## 13. Database Review Checklist
+
+- [ ] Every table has `id`, `office_id` (except root/global tables `offices`, `roles`, `permissions`, `statuses`, which are intentionally exempt), `created_at`, `updated_at`, `created_by`, `updated_by`
+- [ ] Every table with a meaningful lifecycle has a `status`/`status_id` column
+- [ ] Every foreign key has an explicit deletion rule (restrict / set null / cascade) matching its business meaning
+- [ ] Every table expected to be filtered by office and a second dimension (date, status) has a composite index led by `office_id`
+- [ ] No hardcoded status/role/category values exist outside their respective lookup tables
+- [ ] Polymorphic tables (`approval_requests`, `activity_logs`, `notifications`) are documented as intentionally lacking a hard FK on their reference column, with integrity delegated to the application layer
+- [ ] Append-only tables (`activity_logs`, `approval_actions`, `document_versions`) have no update/delete path, at both the schema-intent and (later) RLS-policy level
+- [ ] All explicitly requested fields are present: expense `approved_by`/`approved_date`/`rejected_reason`; inventory `asset_code`; document `tags`
+- [ ] Storage bucket structure aligns with `document_versions.storage_path` convention
+- [ ] Every table that will need role-based access has a clear mapping to the `permissions`/`roles` tables for RLS policy authoring
+- [ ] Currency/amount fields use fixed-precision numeric types, never floating point
+- [ ] No table design assumes single-office forever — every relevant table carries `office_id` even where V1 will only ever populate one value
+
+---
+
+*End of Database Design document. No SQL or application code included, per instructions. Awaiting your approval before proceeding to the UI Design phase.*
