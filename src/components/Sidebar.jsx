@@ -1,3 +1,4 @@
+import { NavLink } from 'react-router-dom'
 import {
   LayoutGrid,
   Receipt,
@@ -11,17 +12,17 @@ import {
   ScrollText
 } from 'lucide-react'
 
-const NAV = [
-  { label: 'Dashboard', icon: LayoutGrid, active: true },
-  { label: 'Expenses', icon: Receipt },
-  { label: 'Approvals', icon: CheckSquare2 },
-  { label: 'Staff Directory', icon: Users },
-  { label: 'Inventory', icon: Boxes },
-  { label: 'Documents', icon: FileStack },
-  { label: 'Tasks', icon: ListChecks },
-  { label: 'Notifications', icon: Bell },
-  { label: 'Activity Log', icon: ScrollText },
-  { label: 'Settings', icon: Settings }
+export const NAV = [
+  { label: 'Dashboard', icon: LayoutGrid, path: '/' },
+  { label: 'Expenses', icon: Receipt, path: '/expenses' },
+  { label: 'Approvals', icon: CheckSquare2, path: '/approvals' },
+  { label: 'Staff Directory', icon: Users, path: '/staff' },
+  { label: 'Inventory', icon: Boxes, path: '/inventory' },
+  { label: 'Documents', icon: FileStack, path: '/documents' },
+  { label: 'Tasks', icon: ListChecks, path: '/tasks' },
+  { label: 'Notifications', icon: Bell, path: '/notifications' },
+  { label: 'Activity Log', icon: ScrollText, path: '/activity-log' },
+  { label: 'Settings', icon: Settings, path: '/settings' }
 ]
 
 export default function Sidebar({ officeName }) {
@@ -43,24 +44,27 @@ export default function Sidebar({ officeName }) {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {NAV.map(({ label, icon: Icon, active }) => (
-          <button
+        {NAV.map(({ label, icon: Icon, path }) => (
+          <NavLink
             key={label}
-            type="button"
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-sm text-[13px] font-body transition-colors ${
-              active
-                ? 'bg-white/10 text-paper border-l-2 border-brass pl-[10px]'
-                : 'text-paper/55 hover:text-paper hover:bg-white/5 border-l-2 border-transparent pl-[10px]'
-            }`}
+            to={path}
+            end={path === '/'}
+            className={({ isActive }) =>
+              `w-full flex items-center gap-3 px-3 py-2 rounded-sm text-[13px] font-body transition-colors border-l-2 pl-[10px] ${
+                isActive
+                  ? 'bg-white/10 text-paper border-brass'
+                  : 'text-paper/55 hover:text-paper hover:bg-white/5 border-transparent'
+              }`
+            }
           >
             <Icon size={16} strokeWidth={1.75} />
             {label}
-          </button>
+          </NavLink>
         ))}
       </nav>
 
       <div className="px-6 py-4 border-t border-white/10 text-[10px] text-paper/40 font-mono">
-        v1.0 · Dashboard module
+        v1.0 · Navigation enabled
       </div>
     </aside>
   )

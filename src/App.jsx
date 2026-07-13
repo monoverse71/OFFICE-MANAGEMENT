@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react'
-import { Receipt, Clock3, PackageX, ListChecks } from 'lucide-react'
-import Sidebar from './components/Sidebar.jsx'
-import Topbar from './components/Topbar.jsx'
-import StatCard from './components/StatCard.jsx'
-import ExpensesTable from './components/ExpensesTable.jsx'
-import ApprovalsPanel from './components/ApprovalsPanel.jsx'
-import TasksPanel from './components/TasksPanel.jsx'
-import NotificationsPanel from './components/NotificationsPanel.jsx'
-import InventoryAlerts from './components/InventoryAlerts.jsx'
-import ActivityFeed from './components/ActivityFeed.jsx'
+import { Routes, Route } from 'react-router-dom'
+import Layout from './components/Layout.jsx'
+import DashboardPage from './pages/DashboardPage.jsx'
+import ExpensesPage from './pages/ExpensesPage.jsx'
+import ApprovalsPage from './pages/ApprovalsPage.jsx'
+import InventoryPage from './pages/InventoryPage.jsx'
+import TasksPage from './pages/TasksPage.jsx'
+import NotificationsPage from './pages/NotificationsPage.jsx'
+import ActivityLogPage from './pages/ActivityLogPage.jsx'
+import PlaceholderPage from './pages/PlaceholderPage.jsx'
 import {
   office,
   currentUser,
@@ -22,7 +22,6 @@ import {
   staffCount,
   activeDocuments
 } from './data/dummyData.js'
-import { formatBDT } from './utils.js'
 
 export default function App() {
   const [role, setRole] = useState(currentUser.role)
@@ -64,71 +63,94 @@ export default function App() {
   const canApprove = role === 'Chairman' || role === 'Vice Chairman'
 
   return (
-    <div className="min-h-screen flex bg-paper">
-      <Sidebar officeName={office.name} />
-
-      <div className="flex-1 min-w-0">
-        <Topbar
-          userName={currentUser.full_name}
-          role={role}
-          roles={roles}
-          onRoleChange={setRole}
-          dateLabel="13 Jul 2026"
+    <Routes>
+      <Route
+        element={
+          <Layout
+            officeName={office.name}
+            userName={currentUser.full_name}
+            role={role}
+            roles={roles}
+            onRoleChange={setRole}
+            dateLabel="13 Jul 2026"
+          />
+        }
+      >
+        <Route
+          index
+          element={
+            <DashboardPage
+              expenses={expenses}
+              approvals={approvals}
+              taskList={taskList}
+              notifications={notifications}
+              inventoryAlerts={inventoryAlerts}
+              activityFeed={activityFeed}
+              monthTotal={monthTotal}
+              overdueCount={overdueCount}
+              staffCount={staffCount}
+              activeDocuments={activeDocuments}
+              canApprove={canApprove}
+              onDecide={handleDecide}
+              onToggleTask={handleToggleTask}
+              onMarkRead={handleMarkRead}
+            />
+          }
         />
 
-        <main className="px-6 lg:px-10 py-8 max-w-[1400px] mx-auto space-y-8">
-          <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <StatCard
-              label="Expenses this month"
-              value={formatBDT(monthTotal)}
-              sub={`${expenses.length} entries logged`}
-              icon={Receipt}
-              accent="ink"
-            />
-            <StatCard
-              label="Pending approvals"
-              value={approvals.length}
-              sub={canApprove ? 'Awaiting your decision' : 'Awaiting Chairman / VC'}
-              icon={Clock3}
-              accent="amber"
-            />
-            <StatCard
-              label="Low stock items"
-              value={inventoryAlerts.length}
-              sub="Below reorder threshold"
-              icon={PackageX}
-              accent="rust"
-            />
-            <StatCard
-              label="Overdue tasks"
-              value={overdueCount}
-              sub={`${staffCount} staff · ${activeDocuments} documents on file`}
-              icon={ListChecks}
-              accent="forest"
-            />
-          </section>
+        <Route path="expenses" element={<ExpensesPage expenses={expenses} />} />
 
-          <section className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-            <div className="xl:col-span-2 space-y-6">
-              <ExpensesTable expenses={expenses} />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <TasksPanel tasks={taskList} onToggle={handleToggleTask} />
-                <InventoryAlerts items={inventoryAlerts} />
-              </div>
-            </div>
+        <Route
+          path="approvals"
+          element={<ApprovalsPage approvals={approvals} onDecide={handleDecide} canApprove={canApprove} />}
+        />
 
-            <div className="space-y-6">
-              <ApprovalsPanel approvals={approvals} onDecide={handleDecide} canApprove={canApprove} />
-              <NotificationsPanel notifications={notifications} onMarkRead={handleMarkRead} />
-              <ActivityFeed logs={activityFeed} />
-            </div>
-          </section>
+        <Route path="inventory" element={<InventoryPage items={inventoryAlerts} />} />
 
-          <footer className="pt-4 pb-2 text-center text-xs text-ink-muted font-body">
-            Dashboard module — built on dummy data per the approved database design. Other modules to follow.
-          </footer>
-        </main>
-      </div>
-    </div>
+        <Route
+          path="staff"
+          element={
+            <PlaceholderPage
+              title="Staff Directory"
+              message="Staff records, roles and contact details will live here."
+            />
+          }
+        />
+
+        <Route path="tasks" element={<TasksPage tasks={taskList} onToggle={handleToggleTask} />} />
+
+        <Route
+          path="notifications"
+          element={<NotificationsPage notifications={notifications} onMarkRead={handleMarkRead} />}
+        />
+
+        <Route path="activity-log" element={<ActivityLogPage logs={activityFeed} />} />
+
+        <Route
+          path="documents"
+          element={
+            <PlaceholderPage
+              title="Documents"
+              message="Contracts, licenses and office paperwork will be filed here."
+            />
+          }
+        />
+
+        <Route
+          path="settings"
+          element={
+            <PlaceholderPage
+              title="Settings"
+              message="Office profile, roles and permissions will be configured here."
+            />
+          }
+        />
+
+        <Route
+          path="*"
+          element={<PlaceholderPage title="Page not found" message="That page doesn't exist yet." />}
+        />
+      </Route>
+    </Routes>
   )
 }
