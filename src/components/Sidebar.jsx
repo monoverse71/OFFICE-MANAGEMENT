@@ -31,10 +31,10 @@ export default function Sidebar({ officeName }) {
       <div className="px-6 pt-7 pb-6 border-b border-white/10">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full border-2 border-brass flex items-center justify-center">
-            <span className="font-display text-brass text-sm">R</span>
+            <span className="font-display text-brass text-sm">A</span>
           </div>
           <div>
-            <p className="font-display text-[15px] leading-none tracking-tight">The Register</p>
+            <p className="font-display text-[15px] leading-none tracking-tight">Apon Niketon Holdings</p>
             <p className="text-[10px] text-paper/45 uppercase tracking-[0.14em] mt-1">Office Administration</p>
           </div>
         </div>

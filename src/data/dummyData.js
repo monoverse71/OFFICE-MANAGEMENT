@@ -4,7 +4,7 @@
 
 export const office = {
   id: 'off-001',
-  name: 'ClicknCart Trading — Head Office',
+  name: 'Apon Niketon Holdings — Head Office',
   timezone: 'Asia/Dhaka',
   currency: 'BDT'
 }
