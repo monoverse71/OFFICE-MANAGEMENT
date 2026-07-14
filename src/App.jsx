@@ -82,15 +82,37 @@ export default function App() {
     ])
   }
 
-  function handleAddExpense(data) {
+  function handleAddExpense(data, submitForApproval) {
+    const id = makeId('exp')
+    const now = new Date().toISOString()
     const record = {
-      id: makeId('exp'),
-      status: 'draft',
+      id,
+      status: submitForApproval ? 'pending_approval' : 'draft',
       submitted_by: currentUser.full_name,
-      created_at: new Date().toISOString(),
+      created_at: now,
       ...data
     }
     setExpenses((prev) => [record, ...prev])
+
+    if (submitForApproval) {
+      const request = {
+        id: makeId('apr'),
+        expense_id: id,
+        status: 'pending_approval',
+        requested_by: record.submitted_by,
+        requested_at: now,
+        decided_by: null,
+        decided_at: null,
+        comment: null,
+        rejection_reason: null
+      }
+      setApprovalRequests((prev) => [request, ...prev])
+      pushActivity(record.submitted_by, 'submit', `Submitted "${record.title}" for approval`)
+      pushNotification(
+        'New Approval Request',
+        `${record.submitted_by} submitted "${record.title}" — ${formatBDT(record.amount)}`
+      )
+    }
   }
 
   function handleUpdateExpense(id, data) {

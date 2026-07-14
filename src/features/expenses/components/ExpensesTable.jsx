@@ -77,15 +77,15 @@ export default function ExpensesTable({
                 <td className="px-4 py-3 text-right"><SealBadge status={exp.status} /></td>
                 <td className="px-4 py-3 font-mono text-xs text-ink-muted whitespace-nowrap">{formatDate(exp.created_at)}</td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-1">
+                  <div className="flex items-center justify-end gap-1.5">
                     {exp.status === 'draft' && (
                       <button
                         type="button"
                         onClick={() => onSubmitForApproval(exp.id)}
-                        title="Submit for Approval"
-                        className="w-7 h-7 flex items-center justify-center rounded-sm text-ink-muted hover:text-forest hover:bg-forest/10 transition-colors"
+                        title="Submit this expense for approval"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-body rounded-sm border border-forest/40 text-forest hover:bg-forest/10 transition-colors whitespace-nowrap"
                       >
-                        <Send size={14} />
+                        <Send size={13} /> Submit for Approval
                       </button>
                     )}
                     <button type="button" onClick={() => onView(exp)} title="View details" className="w-7 h-7 flex items-center justify-center rounded-sm text-ink-muted hover:text-ink hover:bg-paper transition-colors">

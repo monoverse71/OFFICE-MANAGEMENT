@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Modal from '../../../components/shared/Modal.jsx'
 import { paymentMethods } from '../../../data/dummyData.js'
 import { validateExpense, hasErrors } from '../utils/validateExpense.js'
+import { Send } from 'lucide-react'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -35,14 +36,19 @@ export default function ExpenseFormModal({ expense, categories, onSubmit, onClos
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }))
   }
 
-  function handleSubmit(e) {
-    e.preventDefault()
+  function submit(action) {
     const validation = validateExpense(values)
     setErrors(validation)
     if (hasErrors(validation)) return
 
-    onSubmit({ ...values, amount: Number(values.amount) })
+    onSubmit({ ...values, amount: Number(values.amount) }, action)
     onClose()
+  }
+
+  function handleFormSubmit(e) {
+    e.preventDefault()
+    // Enter key / default form submit on the create form means "submit for approval"
+    submit(isEdit ? 'save' : 'submit')
   }
 
   const inputClass =
@@ -57,7 +63,7 @@ export default function ExpenseFormModal({ expense, categories, onSubmit, onClos
       onClose={onClose}
       width="max-w-xl"
     >
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <form onSubmit={handleFormSubmit} noValidate className="space-y-4">
         <div>
           <label className={labelClass} htmlFor="title">Title</label>
           <input
@@ -141,9 +147,24 @@ export default function ExpenseFormModal({ expense, categories, onSubmit, onClos
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-body rounded-sm border border-hairline text-ink hover:bg-paper transition-colors">
             Cancel
           </button>
-          <button type="submit" className="px-4 py-2 text-sm font-body rounded-sm bg-ink text-paper hover:bg-ink-2 transition-colors">
-            {isEdit ? 'Save Changes' : 'Submit Expense'}
-          </button>
+          {isEdit ? (
+            <button type="submit" className="px-4 py-2 text-sm font-body rounded-sm bg-ink text-paper hover:bg-ink-2 transition-colors">
+              Save Changes
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => submit('draft')}
+                className="px-4 py-2 text-sm font-body rounded-sm border border-hairline text-ink hover:bg-paper transition-colors"
+              >
+                Save as Draft
+              </button>
+              <button type="submit" className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-body rounded-sm bg-ink text-paper hover:bg-ink-2 transition-colors">
+                <Send size={14} /> Submit for Approval
+              </button>
+            </>
+          )}
         </div>
       </form>
     </Modal>

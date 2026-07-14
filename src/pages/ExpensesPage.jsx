@@ -38,11 +38,11 @@ export default function ExpensesPage({ expenses, onAddExpense, onUpdateExpense, 
     setPage(1)
   }
 
-  function handleFormSubmit(data) {
+  function handleFormSubmit(data, action) {
     if (formTarget && formTarget !== 'new') {
       onUpdateExpense(formTarget.id, data)
     } else {
-      onAddExpense(data)
+      onAddExpense(data, action === 'submit')
     }
   }
 
