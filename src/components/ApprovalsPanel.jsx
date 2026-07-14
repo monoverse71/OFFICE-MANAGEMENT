@@ -7,7 +7,7 @@ export default function ApprovalsPanel({ approvals, onDecide, canApprove = true 
       <div className="px-5 py-4 border-b border-hairline flex items-center justify-between">
         <div>
           <h2 className="font-display text-lg">Awaiting Approval</h2>
-          <p className="text-xs text-ink-muted font-body">Requires Chairman / Vice Chairman sign-off</p>
+          <p className="text-xs text-ink-muted font-body">Requires Chairman / Vice Chairman / Super Admin sign-off</p>
         </div>
         <span className="font-mono text-xs px-2 py-1 rounded-sm bg-amber/10 text-amber border border-amber/30">
           {approvals.length} open
@@ -29,7 +29,7 @@ export default function ApprovalsPanel({ approvals, onDecide, canApprove = true 
                 type="button"
                 disabled={!canApprove}
                 onClick={() => onDecide(a.id, 'approved')}
-                title={canApprove ? 'Approve' : 'Only Chairman / Vice Chairman can decide'}
+                title={canApprove ? 'Approve' : 'Only Chairman / Vice Chairman / Super Admin can decide'}
                 className="w-7 h-7 flex items-center justify-center rounded-sm border border-forest/40 text-forest enabled:hover:bg-forest/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Check size={14} strokeWidth={2.25} />
@@ -38,7 +38,7 @@ export default function ApprovalsPanel({ approvals, onDecide, canApprove = true 
                 type="button"
                 disabled={!canApprove}
                 onClick={() => onDecide(a.id, 'rejected')}
-                title={canApprove ? 'Reject' : 'Only Chairman / Vice Chairman can decide'}
+                title={canApprove ? 'Reject' : 'Only Chairman / Vice Chairman / Super Admin can decide'}
                 className="w-7 h-7 flex items-center justify-center rounded-sm border border-rust/40 text-rust enabled:hover:bg-rust/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <X size={14} strokeWidth={2.25} />

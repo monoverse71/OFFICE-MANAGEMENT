@@ -12,10 +12,10 @@ export const office = {
 export const currentUser = {
   id: 'usr-001',
   full_name: 'Jihad Rahman',
-  role: 'Chairman' // switchable in the UI: Chairman, Vice Chairman, Admin, Employee
+  role: 'Chairman' // switchable in the UI: Chairman, Vice Chairman, Super Admin, Admin
 }
 
-export const roles = ['Chairman', 'Vice Chairman', 'Admin', 'Employee']
+export const roles = ['Chairman', 'Vice Chairman', 'Super Admin', 'Admin']
 
 // statuses.module_key = 'expenses'
 export const expenseStatuses = {

@@ -5,7 +5,7 @@ export default function Topbar({ userName, role, roles, onRoleChange, dateLabel 
     <header className="flex flex-wrap items-center justify-between gap-4 px-6 lg:px-10 py-5 border-b border-hairline bg-paper/80 backdrop-blur sticky top-0 z-10">
       <div>
         <p className="font-display text-2xl leading-tight">
-          {role === 'Chairman' || role === 'Vice Chairman' ? `Office of the ${role}` : `${role} Desk`}
+          {role === 'Chairman' || role === 'Vice Chairman' || role === 'Super Admin' ? `Office of the ${role}` : `${role} Desk`}
         </p>
         <p className="text-sm text-ink-muted font-body mt-0.5">
           Good to see you, {userName.split(' ')[0]} — here is where the office stands today.

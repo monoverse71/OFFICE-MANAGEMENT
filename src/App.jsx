@@ -36,7 +36,7 @@ export default function App() {
   const [notifications, setNotifications] = useState(initialNotifications)
   const [activityLog, setActivityLog] = useState(initialActivityFeed)
 
-  const canApprove = role === 'Chairman' || role === 'Vice Chairman'
+  const canApprove = role === 'Chairman' || role === 'Vice Chairman' || role === 'Super Admin'
 
   const monthTotal = useMemo(
     () => expenses.reduce((sum, e) => sum + e.amount, 0),

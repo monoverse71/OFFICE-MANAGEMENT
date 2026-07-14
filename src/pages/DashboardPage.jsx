@@ -37,7 +37,7 @@ export default function DashboardPage({
         <StatCard
           label="Pending approvals"
           value={approvals.length}
-          sub={canApprove ? 'Awaiting your decision' : 'Awaiting Chairman / VC'}
+          sub={canApprove ? 'Awaiting your decision' : 'Awaiting Chairman / VC / Super Admin'}
           icon={Clock3}
           accent="amber"
         />

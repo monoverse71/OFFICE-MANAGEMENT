@@ -199,7 +199,7 @@ export default function ApprovalDetailsModal({ request, canApprove, onApprove, o
 
         {isPending && !canApprove && (
           <p className="text-xs text-ink-muted font-body border-t border-hairline pt-4">
-            Only the Chairman or Vice Chairman can approve or reject this request.
+            Only the Chairman, Vice Chairman, or Super Admin can approve or reject this request.
           </p>
         )}
       </div>

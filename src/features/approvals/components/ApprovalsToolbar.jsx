@@ -20,7 +20,7 @@ export default function ApprovalsToolbar({ filters, onFilterChange, counts }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-display text-2xl leading-tight">Approvals</p>
-          <p className="text-xs text-ink-muted font-body mt-0.5">Requests waiting on Chairman / Vice Chairman sign-off</p>
+          <p className="text-xs text-ink-muted font-body mt-0.5">Requests waiting on Chairman / Vice Chairman / Super Admin sign-off</p>
         </div>
         <div className="flex gap-1.5 flex-wrap">
           {TABS.map((tab) => (
