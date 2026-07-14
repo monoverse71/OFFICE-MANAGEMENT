@@ -1,4 +1,4 @@
-import { ChevronUp, ChevronDown, Eye, Pencil, Trash2, Receipt, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronUp, ChevronDown, Eye, Pencil, Trash2, Send, Receipt, ChevronLeft, ChevronRight } from 'lucide-react'
 import SealBadge from '../../../components/SealBadge.jsx'
 import EmptyState from '../../../components/shared/EmptyState.jsx'
 import { formatBDT, formatDate } from '../../../utils.js'
@@ -29,7 +29,8 @@ export default function ExpensesTable({
   onPageChange,
   onView,
   onEdit,
-  onDelete
+  onDelete,
+  onSubmitForApproval
 }) {
   function headerClick(col) {
     if (!col.sortable) return
@@ -77,6 +78,16 @@ export default function ExpensesTable({
                 <td className="px-4 py-3 font-mono text-xs text-ink-muted whitespace-nowrap">{formatDate(exp.created_at)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
+                    {exp.status === 'draft' && (
+                      <button
+                        type="button"
+                        onClick={() => onSubmitForApproval(exp.id)}
+                        title="Submit for Approval"
+                        className="w-7 h-7 flex items-center justify-center rounded-sm text-ink-muted hover:text-forest hover:bg-forest/10 transition-colors"
+                      >
+                        <Send size={14} />
+                      </button>
+                    )}
                     <button type="button" onClick={() => onView(exp)} title="View details" className="w-7 h-7 flex items-center justify-center rounded-sm text-ink-muted hover:text-ink hover:bg-paper transition-colors">
                       <Eye size={14} />
                     </button>

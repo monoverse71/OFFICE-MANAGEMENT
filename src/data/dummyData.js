@@ -71,11 +71,65 @@ export const expenses = [
   { id: 'exp-1024', title: 'Courier — Rajshahi batch', description: 'Weekly courier batch to Rajshahi customers.', category: 'Courier & Logistics', amount: 2600, expense_date: '2026-05-04', payment_method: 'mobile_banking', status: 'paid', submitted_by: 'Kamal Hossain', created_at: '2026-05-04T12:00:00' }
 ]
 
-// approval_requests + approval_actions, flattened for the dashboard view
-export const pendingApprovals = [
-  { id: 'apr-1', module: 'Expense', record_title: 'Office electricity bill — June', amount: 8450, requested_by: 'Nasrin Akter', requested_at: '2026-07-11', threshold: 5000 },
-  { id: 'apr-2', module: 'Expense', record_title: 'Client meeting refreshments', amount: 1650, requested_by: 'Nasrin Akter', requested_at: '2026-07-09', threshold: 5000 },
-  { id: 'apr-3', module: 'Purchase', record_title: '2x office chairs — ergonomic', amount: 18500, requested_by: 'Kamal Hossain', requested_at: '2026-07-08', threshold: 15000 }
+// approval_requests — one row per submission, linked to its expense.
+// status: 'pending_approval' | 'approved' | 'rejected'
+// Historical decided rows stay in this array permanently — that's the approval history.
+export const approvalRequests = [
+  {
+    id: 'apr-1001',
+    expense_id: 'exp-1001',
+    status: 'pending_approval',
+    requested_by: 'Nasrin Akter',
+    requested_at: '2026-07-11T09:15:00',
+    decided_by: null,
+    decided_at: null,
+    comment: null,
+    rejection_reason: null
+  },
+  {
+    id: 'apr-1004',
+    expense_id: 'exp-1004',
+    status: 'pending_approval',
+    requested_by: 'Nasrin Akter',
+    requested_at: '2026-07-09T15:25:00',
+    decided_by: null,
+    decided_at: null,
+    comment: null,
+    rejection_reason: null
+  },
+  {
+    id: 'apr-1002',
+    expense_id: 'exp-1002',
+    status: 'approved',
+    requested_by: 'Jihad Rahman',
+    requested_at: '2026-07-10T08:05:00',
+    decided_by: 'Jihad Rahman',
+    decided_at: '2026-07-10T18:02:00',
+    comment: 'Approved as budgeted.',
+    rejection_reason: null
+  },
+  {
+    id: 'apr-1006',
+    expense_id: 'exp-1006',
+    status: 'rejected',
+    requested_by: 'Kamal Hossain',
+    requested_at: '2026-07-07T10:20:00',
+    decided_by: 'Jihad Rahman',
+    decided_at: '2026-07-07T12:00:00',
+    comment: null,
+    rejection_reason: 'Duplicate of exp-1002 courier batch — already settled.'
+  },
+  {
+    id: 'apr-1016',
+    expense_id: 'exp-1016',
+    status: 'rejected',
+    requested_by: 'Kamal Hossain',
+    requested_at: '2026-06-05T10:05:00',
+    decided_by: 'Jihad Rahman',
+    decided_at: '2026-06-05T11:00:00',
+    comment: null,
+    rejection_reason: 'Please route through the Purchases module instead of Expenses.'
+  }
 ]
 
 // tasks
