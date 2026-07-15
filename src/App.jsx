@@ -8,8 +8,10 @@ import InventoryPage from './pages/InventoryPage.jsx'
 import TasksPage from './pages/TasksPage.jsx'
 import NotificationsPage from './pages/NotificationsPage.jsx'
 import ActivityLogPage from './pages/ActivityLogPage.jsx'
+import StaffPage from './pages/StaffPage.jsx'
 import PlaceholderPage from './pages/PlaceholderPage.jsx'
 import { formatBDT } from './utils.js'
+import { nextEmployeeId } from './features/staff/utils/staffFilters.js'
 import {
   office,
   currentUser,
@@ -20,7 +22,7 @@ import {
   inventoryAlerts,
   notifications as initialNotifications,
   activityFeed as initialActivityFeed,
-  staffCount,
+  staff as initialStaff,
   activeDocuments
 } from './data/dummyData.js'
 
@@ -35,6 +37,7 @@ export default function App() {
   const [taskList, setTaskList] = useState(initialTasks)
   const [notifications, setNotifications] = useState(initialNotifications)
   const [activityLog, setActivityLog] = useState(initialActivityFeed)
+  const [staffList, setStaffList] = useState(initialStaff)
 
   const canApprove = role === 'Chairman' || role === 'Vice Chairman' || role === 'Super Admin'
 
@@ -263,6 +266,28 @@ export default function App() {
     )
   }
 
+  function handleAddStaff(data) {
+    const record = {
+      id: nextEmployeeId(staffList),
+      created_at: new Date().toISOString(),
+      ...data
+    }
+    setStaffList((prev) => [record, ...prev])
+    pushActivity(currentUser.full_name, 'create', `Added "${record.full_name}" to the Staff Directory`)
+  }
+
+  function handleUpdateStaff(id, data) {
+    setStaffList((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)))
+  }
+
+  function handleDeleteStaff(id) {
+    const employee = staffList.find((s) => s.id === id)
+    setStaffList((prev) => prev.filter((s) => s.id !== id))
+    if (employee) {
+      pushActivity(currentUser.full_name, 'delete', `Removed "${employee.full_name}" from the Staff Directory`)
+    }
+  }
+
   return (
     <Routes>
       <Route
@@ -289,7 +314,7 @@ export default function App() {
               activityFeed={activityLog}
               monthTotal={monthTotal}
               overdueCount={overdueCount}
-              staffCount={staffCount}
+              staffCount={staffList.length}
               activeDocuments={activeDocuments}
               canApprove={canApprove}
               onDecide={handleDashboardDecide}
@@ -330,9 +355,11 @@ export default function App() {
         <Route
           path="staff"
           element={
-            <PlaceholderPage
-              title="Staff Directory"
-              message="Staff records, roles and contact details will live here."
+            <StaffPage
+              staff={staffList}
+              onAddEmployee={handleAddStaff}
+              onUpdateEmployee={handleUpdateStaff}
+              onDeleteEmployee={handleDeleteStaff}
             />
           }
         />
