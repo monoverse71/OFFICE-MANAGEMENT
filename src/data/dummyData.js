@@ -30,8 +30,23 @@ export const expenseStatuses = {
 export const paymentMethods = [
   { value: 'cash', label: 'Cash' },
   { value: 'bank', label: 'Bank' },
+  { value: 'bkash', label: 'bKash' },
+  { value: 'nagad', label: 'Nagad' },
+  { value: 'rocket', label: 'Rocket' },
+  { value: 'cheque', label: 'Cheque' },
   { value: 'mobile_banking', label: 'Mobile Banking' },
   { value: 'card', label: 'Card' }
+]
+
+// Payment method is now chosen by the approver at approval time, not by
+// whoever submits the expense request — this is the exact set they choose from.
+export const approvalPaymentMethods = [
+  { value: 'cash', label: 'Cash' },
+  { value: 'bank', label: 'Bank' },
+  { value: 'bkash', label: 'bKash' },
+  { value: 'nagad', label: 'Nagad' },
+  { value: 'rocket', label: 'Rocket' },
+  { value: 'cheque', label: 'Cheque' }
 ]
 
 export const expenseCategories = [
@@ -45,10 +60,10 @@ export const expenseCategories = [
 ]
 
 export const expenses = [
-  { id: 'exp-1001', title: 'Office electricity bill — June', description: 'Monthly electricity bill for the head office floor.', category: 'Utilities', amount: 8450, expense_date: '2026-07-11', payment_method: 'bank', status: 'pending_approval', submitted_by: 'Nasrin Akter', created_at: '2026-07-11T09:10:00' },
+  { id: 'exp-1001', title: 'Office electricity bill — June', description: 'Monthly electricity bill for the head office floor.', category: 'Utilities', amount: 8450, expense_date: '2026-07-11', status: 'pending_approval', submitted_by: 'Nasrin Akter', created_at: '2026-07-11T09:10:00' },
   { id: 'exp-1002', title: 'Godown rent — July', description: 'Monthly rent for the Mirpur godown.', category: 'Rent', amount: 45000, expense_date: '2026-07-10', payment_method: 'bank', status: 'approved', submitted_by: 'Jihad Rahman', created_at: '2026-07-10T08:00:00' },
   { id: 'exp-1003', title: 'AC servicing, 2nd floor', description: 'Annual AC gas refill and filter cleaning.', category: 'Maintenance', amount: 3200, expense_date: '2026-07-09', payment_method: 'cash', status: 'paid', submitted_by: 'Kamal Hossain', created_at: '2026-07-09T11:30:00' },
-  { id: 'exp-1004', title: 'Client meeting refreshments', description: 'Snacks and tea for the supplier meeting.', category: 'Refreshments', amount: 1650, expense_date: '2026-07-09', payment_method: 'mobile_banking', status: 'pending_approval', submitted_by: 'Nasrin Akter', created_at: '2026-07-09T15:20:00' },
+  { id: 'exp-1004', title: 'Client meeting refreshments', description: 'Snacks and tea for the supplier meeting.', category: 'Refreshments', amount: 1650, expense_date: '2026-07-09', status: 'pending_approval', submitted_by: 'Nasrin Akter', created_at: '2026-07-09T15:20:00' },
   { id: 'exp-1005', title: 'Chattogram supplier visit — fuel & toll', description: 'Round trip to the Chattogram supplier warehouse.', category: 'Travel', amount: 5200, expense_date: '2026-07-08', payment_method: 'cash', status: 'approved', submitted_by: 'Shakil Ahmed', created_at: '2026-07-08T18:00:00' },
   { id: 'exp-1006', title: 'Courier — Sundarban parcel dispatch', description: 'Bulk parcel dispatch for pending orders.', category: 'Courier & Logistics', amount: 2100, expense_date: '2026-07-07', payment_method: 'mobile_banking', status: 'rejected', submitted_by: 'Kamal Hossain', created_at: '2026-07-07T10:15:00' },
   { id: 'exp-1007', title: 'Printer toner, 3 units', description: 'Toner restock for the front office printer.', category: 'Maintenance', amount: 4800, expense_date: '2026-07-06', payment_method: 'card', status: 'paid', submitted_by: 'Nasrin Akter', created_at: '2026-07-06T09:45:00' },
@@ -66,7 +81,7 @@ export const expenses = [
   { id: 'exp-1019', title: 'Generator fuel — load shedding week', description: 'Diesel for backup generator during outages.', category: 'Utilities', amount: 4200, expense_date: '2026-05-22', payment_method: 'cash', status: 'paid', submitted_by: 'Kamal Hossain', created_at: '2026-05-22T19:00:00' },
   { id: 'exp-1020', title: 'Courier — Sylhet batch', description: 'Weekly courier batch to Sylhet customers.', category: 'Courier & Logistics', amount: 2900, expense_date: '2026-05-18', payment_method: 'mobile_banking', status: 'paid', submitted_by: 'Kamal Hossain', created_at: '2026-05-18T12:30:00' },
   { id: 'exp-1021', title: 'Trade license renewal fee', description: 'Annual trade license government fee.', category: 'Rent', amount: 12000, expense_date: '2026-05-15', payment_method: 'bank', status: 'archived', submitted_by: 'Jihad Rahman', created_at: '2026-05-15T09:00:00' },
-  { id: 'exp-1022', title: 'Draft — new signage estimate', description: 'Awaiting quote confirmation before submission.', category: 'Maintenance', amount: 9000, expense_date: '2026-05-12', payment_method: 'cash', status: 'draft', submitted_by: 'Kamal Hossain', created_at: '2026-05-12T10:20:00' },
+  { id: 'exp-1022', title: 'Draft — new signage estimate', description: 'Awaiting quote confirmation before submission.', category: 'Maintenance', amount: 9000, expense_date: '2026-05-12', status: 'draft', submitted_by: 'Kamal Hossain', created_at: '2026-05-12T10:20:00' },
   { id: 'exp-1023', title: 'Eid card printing', description: 'Printed greeting cards for key clients.', category: 'Marketing', amount: 1800, expense_date: '2026-05-09', payment_method: 'card', status: 'paid', submitted_by: 'Shakil Ahmed', created_at: '2026-05-09T13:40:00' },
   { id: 'exp-1024', title: 'Courier — Rajshahi batch', description: 'Weekly courier batch to Rajshahi customers.', category: 'Courier & Logistics', amount: 2600, expense_date: '2026-05-04', payment_method: 'mobile_banking', status: 'paid', submitted_by: 'Kamal Hossain', created_at: '2026-05-04T12:00:00' }
 ]

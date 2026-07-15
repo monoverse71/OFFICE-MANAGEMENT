@@ -151,24 +151,57 @@ export default function App() {
     )
   }
 
-  function handleApproveRequest(requestId, comment) {
+  function handleApproveRequest(requestId, decision) {
     const request = approvalRequests.find((r) => r.id === requestId)
     if (!request) return
     const expense = expenses.find((e) => e.id === request.expense_id)
     const now = new Date().toISOString()
 
+    const approvedAmount = decision?.approvedAmount ?? (expense ? expense.amount : 0)
+    const paymentMethod = decision?.paymentMethod ?? null
+    const paymentDate = decision?.paymentDate ?? now.slice(0, 10)
+    const note = decision?.note ? decision.note.trim() : null
+
     setApprovalRequests((prev) =>
       prev.map((r) =>
         r.id === requestId
-          ? { ...r, status: 'approved', decided_by: currentUser.full_name, decided_at: now, comment: comment || null }
+          ? {
+              ...r,
+              status: 'approved',
+              decided_by: currentUser.full_name,
+              decided_at: now,
+              comment: note,
+              approved_amount: approvedAmount,
+              payment_method: paymentMethod,
+              payment_date: paymentDate
+            }
           : r
       )
     )
-    setExpenses((prev) => prev.map((e) => (e.id === request.expense_id ? { ...e, status: 'approved' } : e)))
-    pushActivity(currentUser.full_name, 'approve', `Approved expense "${expense ? expense.title : request.expense_id}"`)
+    // The requested amount (expense.amount) is never touched — approved_amount
+    // is stored separately so both values survive for reporting/history.
+    setExpenses((prev) =>
+      prev.map((e) =>
+        e.id === request.expense_id
+          ? {
+              ...e,
+              status: 'approved',
+              approved_amount: approvedAmount,
+              payment_method: paymentMethod,
+              payment_date: paymentDate,
+              approval_note: note
+            }
+          : e
+      )
+    )
+    pushActivity(
+      currentUser.full_name,
+      'approve',
+      `Approved expense "${expense ? expense.title : request.expense_id}" — ${formatBDT(approvedAmount)}`
+    )
     pushNotification(
       'Expense Approved',
-      `${currentUser.full_name} approved "${expense ? expense.title : request.expense_id}"${expense ? ' — ' + formatBDT(expense.amount) : ''}`
+      `${currentUser.full_name} approved "${expense ? expense.title : request.expense_id}" — ${formatBDT(approvedAmount)}`
     )
   }
 
@@ -196,10 +229,19 @@ export default function App() {
     )
   }
 
-  // Quick actions from the Dashboard widget don't collect a comment/reason.
+  // Quick actions from the Dashboard widget approve at the full requested
+  // amount via Cash, dated today — a fast path; the Approvals page itself
+  // still requires the full confirmation form before a decision can be made.
   function handleDashboardDecide(requestId, decision) {
     if (decision === 'approved') {
-      handleApproveRequest(requestId)
+      const request = approvalRequests.find((r) => r.id === requestId)
+      const expense = request ? expenses.find((e) => e.id === request.expense_id) : null
+      handleApproveRequest(requestId, {
+        approvedAmount: expense ? expense.amount : 0,
+        paymentMethod: 'cash',
+        paymentDate: new Date().toISOString().slice(0, 10),
+        note: 'Quick-approved from the Dashboard'
+      })
     } else {
       handleRejectRequest(requestId, 'Rejected from the Dashboard quick action')
     }

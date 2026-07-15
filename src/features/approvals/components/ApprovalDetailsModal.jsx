@@ -2,22 +2,55 @@ import { useState } from 'react'
 import Modal from '../../../components/shared/Modal.jsx'
 import SealBadge from '../../../components/SealBadge.jsx'
 import { formatBDT, formatDate, formatDateTime } from '../../../utils.js'
-import { paymentMethods } from '../../../data/dummyData.js'
+import { paymentMethods, approvalPaymentMethods } from '../../../data/dummyData.js'
 import { Send, CheckCircle2, XCircle, FileText, Check, X } from 'lucide-react'
 
 const PAYMENT_LABELS = Object.fromEntries(paymentMethods.map((m) => [m.value, m.label]))
+const today = () => new Date().toISOString().slice(0, 10)
 
 export default function ApprovalDetailsModal({ request, canApprove, onApprove, onReject, onClose }) {
   const expense = request.expense
-  const [comment, setComment] = useState('')
-  const [reason, setReason] = useState('')
   const [mode, setMode] = useState(null) // null | 'approve' | 'reject'
+
+  // Approval confirmation form fields
+  const [approvedAmount, setApprovedAmount] = useState(expense ? String(expense.amount) : '')
+  const [paymentMethod, setPaymentMethod] = useState('')
+  const [paymentDate, setPaymentDate] = useState(today())
+  const [approvalNote, setApprovalNote] = useState('')
+  const [approveErrors, setApproveErrors] = useState({})
+
+  // Rejection form field
+  const [reason, setReason] = useState('')
   const [reasonError, setReasonError] = useState('')
 
   const isPending = request.status === 'pending_approval'
 
+  function validateApproval() {
+    const errors = {}
+    const amountNum = Number(approvedAmount)
+    if (approvedAmount === '' || Number.isNaN(amountNum) || amountNum <= 0) {
+      errors.approvedAmount = 'Enter an approved amount greater than zero.'
+    }
+    if (!paymentMethod) {
+      errors.paymentMethod = 'Select a payment method.'
+    }
+    if (!paymentDate) {
+      errors.paymentDate = 'Select a payment date.'
+    }
+    return errors
+  }
+
   function submitApprove() {
-    onApprove(request.id, comment.trim())
+    const errors = validateApproval()
+    setApproveErrors(errors)
+    if (Object.keys(errors).length > 0) return
+
+    onApprove(request.id, {
+      approvedAmount: Number(approvedAmount),
+      paymentMethod,
+      paymentDate,
+      note: approvalNote.trim()
+    })
     onClose()
   }
 
@@ -60,15 +93,30 @@ export default function ApprovalDetailsModal({ request, canApprove, onApprove, o
     })
   }
 
+  const inputClass =
+    'w-full px-3 py-2 text-sm bg-paper border border-hairline rounded-sm font-body text-ink focus:border-brass focus:outline-none'
+  const labelClass = 'block text-xs font-body uppercase tracking-wide text-ink-muted mb-1.5'
+  const errorClass = 'text-xs text-rust font-body mt-1'
+
   return (
     <Modal title={expense ? expense.title : request.expense_id} subtitle={`Request ${request.id} · Expense ${request.expense_id}`} onClose={onClose} width="max-w-xl">
       <div className="space-y-5">
         {expense ? (
           <>
             <div className="flex items-center justify-between">
-              <span className="font-display text-2xl">{formatBDT(expense.amount)}</span>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-ink-muted font-body">Requested Amount</p>
+                <span className="font-display text-2xl">{formatBDT(expense.amount)}</span>
+              </div>
               <SealBadge status={request.status} />
             </div>
+
+            {request.approved_amount != null && (
+              <div className="flex items-center justify-between px-3 py-2.5 bg-forest/5 border border-forest/20 rounded-sm">
+                <span className="text-xs uppercase tracking-wide text-forest font-body">Approved Amount</span>
+                <span className="font-display text-lg text-forest">{formatBDT(request.approved_amount)}</span>
+              </div>
+            )}
 
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               <div>
@@ -81,7 +129,9 @@ export default function ApprovalDetailsModal({ request, canApprove, onApprove, o
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wide text-ink-muted font-body">Payment Method</dt>
-                <dd className="font-body mt-0.5">{PAYMENT_LABELS[expense.payment_method] || expense.payment_method}</dd>
+                <dd className="font-body mt-0.5">
+                  {expense.payment_method ? (PAYMENT_LABELS[expense.payment_method] || expense.payment_method) : 'Not decided yet'}
+                </dd>
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wide text-ink-muted font-body">Submitted By</dt>
@@ -96,11 +146,18 @@ export default function ApprovalDetailsModal({ request, canApprove, onApprove, o
               </div>
             )}
 
+            {expense.remarks && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-ink-muted font-body mb-1">Remarks</p>
+                <p className="text-sm font-body text-ink">{expense.remarks}</p>
+              </div>
+            )}
+
             <div>
-              <p className="text-xs uppercase tracking-wide text-ink-muted font-body mb-1.5">Receipt</p>
+              <p className="text-xs uppercase tracking-wide text-ink-muted font-body mb-1.5">Attachment</p>
               <div className="flex items-center gap-2 text-sm text-ink-muted font-body px-3 py-3 border border-dashed border-hairline rounded-sm">
                 <FileText size={16} />
-                No receipt attached — upload will be available once file storage is wired up.
+                {expense.attachment_file_name || 'No attachment on this request.'}
               </div>
             </div>
           </>
@@ -130,9 +187,7 @@ export default function ApprovalDetailsModal({ request, canApprove, onApprove, o
           <div className="border-t border-hairline pt-4 space-y-3">
             {mode === 'reject' ? (
               <div>
-                <label className="block text-xs font-body uppercase tracking-wide text-ink-muted mb-1.5" htmlFor="reason">
-                  Rejection reason
-                </label>
+                <label className={labelClass} htmlFor="reason">Rejection reason</label>
                 <textarea
                   id="reason"
                   rows={3}
@@ -142,9 +197,9 @@ export default function ApprovalDetailsModal({ request, canApprove, onApprove, o
                     if (reasonError) setReasonError('')
                   }}
                   placeholder="Explain why this expense is being rejected"
-                  className="w-full px-3 py-2 text-sm bg-paper border border-hairline rounded-sm font-body text-ink focus:border-brass focus:outline-none"
+                  className={inputClass}
                 />
-                {reasonError && <p className="text-xs text-rust font-body mt-1">{reasonError}</p>}
+                {reasonError && <p className={errorClass}>{reasonError}</p>}
                 <div className="flex justify-end gap-2 mt-3">
                   <button type="button" onClick={() => setMode(null)} className="px-4 py-2 text-sm font-body rounded-sm border border-hairline text-ink hover:bg-paper transition-colors">
                     Back
@@ -155,19 +210,77 @@ export default function ApprovalDetailsModal({ request, canApprove, onApprove, o
                 </div>
               </div>
             ) : mode === 'approve' ? (
-              <div>
-                <label className="block text-xs font-body uppercase tracking-wide text-ink-muted mb-1.5" htmlFor="comment">
-                  Comment (optional)
-                </label>
-                <textarea
-                  id="comment"
-                  rows={3}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Add a note for the record"
-                  className="w-full px-3 py-2 text-sm bg-paper border border-hairline rounded-sm font-body text-ink focus:border-brass focus:outline-none"
-                />
-                <div className="flex justify-end gap-2 mt-3">
+              <div className="space-y-3">
+                <p className="text-xs font-body text-ink-muted">
+                  Confirm the final amount and how this expense will be paid out.
+                </p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClass} htmlFor="approved_amount">Approved Amount (৳)</label>
+                    <input
+                      id="approved_amount"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className={inputClass}
+                      value={approvedAmount}
+                      onChange={(e) => {
+                        setApprovedAmount(e.target.value)
+                        if (approveErrors.approvedAmount) setApproveErrors((prev) => ({ ...prev, approvedAmount: undefined }))
+                      }}
+                    />
+                    {approveErrors.approvedAmount && <p className={errorClass}>{approveErrors.approvedAmount}</p>}
+                  </div>
+
+                  <div>
+                    <label className={labelClass} htmlFor="payment_date">Payment Date</label>
+                    <input
+                      id="payment_date"
+                      type="date"
+                      className={inputClass}
+                      value={paymentDate}
+                      onChange={(e) => {
+                        setPaymentDate(e.target.value)
+                        if (approveErrors.paymentDate) setApproveErrors((prev) => ({ ...prev, paymentDate: undefined }))
+                      }}
+                    />
+                    {approveErrors.paymentDate && <p className={errorClass}>{approveErrors.paymentDate}</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelClass} htmlFor="payment_method">Payment Method</label>
+                  <select
+                    id="payment_method"
+                    className={inputClass}
+                    value={paymentMethod}
+                    onChange={(e) => {
+                      setPaymentMethod(e.target.value)
+                      if (approveErrors.paymentMethod) setApproveErrors((prev) => ({ ...prev, paymentMethod: undefined }))
+                    }}
+                  >
+                    <option value="">Select payment method</option>
+                    {approvalPaymentMethods.map((m) => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+                  {approveErrors.paymentMethod && <p className={errorClass}>{approveErrors.paymentMethod}</p>}
+                </div>
+
+                <div>
+                  <label className={labelClass} htmlFor="approval_note">Approval Note (optional)</label>
+                  <textarea
+                    id="approval_note"
+                    rows={2}
+                    className={inputClass}
+                    value={approvalNote}
+                    onChange={(e) => setApprovalNote(e.target.value)}
+                    placeholder="Add a note for the record"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-1">
                   <button type="button" onClick={() => setMode(null)} className="px-4 py-2 text-sm font-body rounded-sm border border-hairline text-ink hover:bg-paper transition-colors">
                     Back
                   </button>

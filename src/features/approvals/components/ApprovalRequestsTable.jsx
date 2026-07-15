@@ -13,7 +13,8 @@ export default function ApprovalRequestsTable({ rows, onReview }) {
               <th className="px-4 py-3 font-medium whitespace-nowrap">Request ID</th>
               <th className="px-4 py-3 font-medium whitespace-nowrap">Expense ID</th>
               <th className="px-4 py-3 font-medium">Expense Title</th>
-              <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Amount</th>
+              <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Requested Amount</th>
+              <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Approved Amount</th>
               <th className="px-4 py-3 font-medium whitespace-nowrap">Category</th>
               <th className="px-4 py-3 font-medium whitespace-nowrap">Submitted By</th>
               <th className="px-4 py-3 font-medium whitespace-nowrap">Submitted Date</th>
@@ -28,6 +29,7 @@ export default function ApprovalRequestsTable({ rows, onReview }) {
                 <td className="px-4 py-3 font-mono text-xs text-ink-muted whitespace-nowrap">{r.expense_id}</td>
                 <td className="px-4 py-3 font-body max-w-[220px] truncate">{r.expense ? r.expense.title : 'Expense not found'}</td>
                 <td className="px-4 py-3 font-mono text-right whitespace-nowrap">{r.expense ? formatBDT(r.expense.amount) : '—'}</td>
+                <td className="px-4 py-3 font-mono text-right whitespace-nowrap">{r.approved_amount != null ? formatBDT(r.approved_amount) : '—'}</td>
                 <td className="px-4 py-3 font-body text-ink-muted whitespace-nowrap">{r.expense ? r.expense.category : '—'}</td>
                 <td className="px-4 py-3 font-body text-ink-muted whitespace-nowrap">{r.requested_by}</td>
                 <td className="px-4 py-3 font-mono text-xs text-ink-muted whitespace-nowrap">{formatDate(r.requested_at)}</td>

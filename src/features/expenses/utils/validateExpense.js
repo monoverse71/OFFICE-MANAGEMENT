@@ -25,10 +25,6 @@ export function validateExpense(values) {
     }
   }
 
-  if (!values.payment_method) {
-    errors.payment_method = 'Please select a payment method.'
-  }
-
   return errors
 }
 

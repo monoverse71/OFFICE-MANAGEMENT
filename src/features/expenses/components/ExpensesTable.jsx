@@ -10,7 +10,8 @@ const COLUMNS = [
   { key: 'id', label: 'Expense ID', sortable: false },
   { key: 'title', label: 'Title', sortable: false },
   { key: 'category', label: 'Category', sortable: false },
-  { key: 'amount', label: 'Amount', sortable: true, align: 'right' },
+  { key: 'amount', label: 'Requested Amount', sortable: true, align: 'right' },
+  { key: 'approved_amount', label: 'Approved Amount', sortable: false, align: 'right' },
   { key: 'payment_method', label: 'Payment Method', sortable: false },
   { key: 'expense_date', label: 'Expense Date', sortable: true },
   { key: 'submitted_by', label: 'Submitted By', sortable: false },
@@ -71,7 +72,8 @@ export default function ExpensesTable({
                 <td className="px-4 py-3 font-body max-w-[200px] truncate">{exp.title}</td>
                 <td className="px-4 py-3 font-body text-ink-muted whitespace-nowrap">{exp.category}</td>
                 <td className="px-4 py-3 font-mono text-right whitespace-nowrap">{formatBDT(exp.amount)}</td>
-                <td className="px-4 py-3 font-body text-ink-muted whitespace-nowrap">{PAYMENT_LABELS[exp.payment_method] || exp.payment_method}</td>
+                <td className="px-4 py-3 font-mono text-right whitespace-nowrap">{exp.approved_amount != null ? formatBDT(exp.approved_amount) : '—'}</td>
+                <td className="px-4 py-3 font-body text-ink-muted whitespace-nowrap">{exp.payment_method ? (PAYMENT_LABELS[exp.payment_method] || exp.payment_method) : '—'}</td>
                 <td className="px-4 py-3 font-mono text-xs text-ink-muted whitespace-nowrap">{formatDate(exp.expense_date)}</td>
                 <td className="px-4 py-3 font-body text-ink-muted whitespace-nowrap">{exp.submitted_by}</td>
                 <td className="px-4 py-3 text-right"><SealBadge status={exp.status} /></td>
