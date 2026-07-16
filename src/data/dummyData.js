@@ -66,6 +66,39 @@ export const expenseCategories = [
   { id: 'cat-12', name: 'Miscellaneous', examples: ['Other', 'Unclassified', 'Emergency Purchase'] }
 ]
 
+// item_catalogue — the master item → category mapping that powers the
+// smart Expense Title selector. Reusable by future modules (Inventory,
+// Purchase, Reports) without any redesign — it's just name + category.
+export const itemCatalogue = [
+  { id: 'itm-1', name: 'Laptop', category: 'IT & Electronics' },
+  { id: 'itm-2', name: 'Desktop', category: 'IT & Electronics' },
+  { id: 'itm-3', name: 'Printer', category: 'IT & Electronics' },
+  { id: 'itm-4', name: 'Router', category: 'IT & Electronics' },
+  { id: 'itm-5', name: 'UPS', category: 'IT & Electronics' },
+  { id: 'itm-6', name: 'Monitor', category: 'IT & Electronics' },
+  { id: 'itm-7', name: 'Mouse', category: 'IT & Electronics' },
+  { id: 'itm-8', name: 'Keyboard', category: 'IT & Electronics' },
+  { id: 'itm-9', name: 'CCTV', category: 'IT & Electronics' },
+  { id: 'itm-10', name: 'Fan', category: 'IT & Electronics' },
+  { id: 'itm-11', name: 'AC', category: 'IT & Electronics' },
+  { id: 'itm-12', name: 'Generator', category: 'IT & Electronics' },
+  { id: 'itm-13', name: 'Tea', category: 'Office Supplies' },
+  { id: 'itm-14', name: 'Coffee', category: 'Office Supplies' },
+  { id: 'itm-15', name: 'Sugar', category: 'Office Supplies' },
+  { id: 'itm-16', name: 'Tissue', category: 'Office Supplies' },
+  { id: 'itm-17', name: 'Paper', category: 'Office Supplies' },
+  { id: 'itm-18', name: 'Pen', category: 'Office Supplies' },
+  { id: 'itm-19', name: 'File', category: 'Office Supplies' },
+  { id: 'itm-20', name: 'Water', category: 'Office Supplies' },
+  { id: 'itm-21', name: 'Chair', category: 'Furniture & Fixtures' },
+  { id: 'itm-22', name: 'Office Chair', category: 'Furniture & Fixtures' },
+  { id: 'itm-23', name: 'Desk', category: 'Furniture & Fixtures' },
+  { id: 'itm-24', name: 'Sofa', category: 'Furniture & Fixtures' },
+  { id: 'itm-25', name: 'Fuel', category: 'Transport & Logistics' },
+  { id: 'itm-26', name: 'Trade License', category: 'Legal & Government' },
+  { id: 'itm-27', name: 'Facebook Ads', category: 'Marketing & Branding' }
+]
+
 export const expenses = []
 
 // approval_requests — one row per submission, linked to its expense.

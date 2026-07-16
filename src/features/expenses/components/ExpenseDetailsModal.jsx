@@ -1,8 +1,9 @@
 import Modal from '../../../components/shared/Modal.jsx'
 import SealBadge from '../../../components/SealBadge.jsx'
+import ExpensePrintSheet from '../../../components/shared/ExpensePrintSheet.jsx'
 import { formatBDT, formatDate, formatDateTime } from '../../../utils.js'
 import { paymentMethods } from '../../../data/dummyData.js'
-import { FileText, ImageIcon } from 'lucide-react'
+import { FileText, ImageIcon, Printer } from 'lucide-react'
 
 const PAYMENT_LABELS = Object.fromEntries(paymentMethods.map((m) => [m.value, m.label]))
 
@@ -31,6 +32,7 @@ function ReceiptPreview({ fileName }) {
 
 export default function ExpenseDetailsModal({ expense, onClose }) {
   const isDecided = expense.status === 'approved' || expense.status === 'paid' || expense.status === 'rejected'
+  const isApproved = expense.status === 'approved' || expense.status === 'paid'
 
   return (
     <Modal title={expense.title} subtitle={`Record ${expense.id}`} onClose={onClose} width="max-w-lg">
@@ -40,7 +42,19 @@ export default function ExpenseDetailsModal({ expense, onClose }) {
             <p className="text-xs uppercase tracking-wide text-ink-muted font-body">Requested Amount</p>
             <span className="font-display text-2xl">{formatBDT(expense.amount)}</span>
           </div>
-          <SealBadge status={expense.status} />
+          <div className="flex items-center gap-2">
+            <SealBadge status={expense.status} />
+            {isApproved && (
+              <button
+                type="button"
+                onClick={() => window.print()}
+                title="Print this expense record"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-body rounded-sm border border-hairline text-ink-muted hover:border-brass hover:text-ink transition-colors"
+              >
+                <Printer size={13} /> Print
+              </button>
+            )}
+          </div>
         </div>
 
         {expense.approved_amount != null && (
@@ -120,6 +134,8 @@ export default function ExpenseDetailsModal({ expense, onClose }) {
           <ReceiptPreview fileName={expense.attachment_file_name} />
         </div>
       </div>
+
+      {isApproved && <ExpensePrintSheet expense={expense} />}
     </Modal>
   )
 }

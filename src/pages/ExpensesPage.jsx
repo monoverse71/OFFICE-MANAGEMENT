@@ -10,7 +10,15 @@ import { expenseCategories } from '../data/dummyData.js'
 
 const PAGE_SIZE = 10
 
-export default function ExpensesPage({ expenses, onAddExpense, onUpdateExpense, onDeleteExpense, onSubmitForApproval }) {
+export default function ExpensesPage({
+  expenses,
+  onAddExpense,
+  onUpdateExpense,
+  onDeleteExpense,
+  onSubmitForApproval,
+  catalogue,
+  onCreateItem
+}) {
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [sortBy, setSortBy] = useState('expense_date')
   const [sortDir, setSortDir] = useState('desc')
@@ -81,6 +89,8 @@ export default function ExpensesPage({ expenses, onAddExpense, onUpdateExpense, 
         <ExpenseFormModal
           expense={formTarget === 'new' ? null : formTarget}
           categories={expenseCategories}
+          catalogue={catalogue}
+          onCreateItem={onCreateItem}
           onSubmit={handleFormSubmit}
           onClose={() => setFormTarget(null)}
         />

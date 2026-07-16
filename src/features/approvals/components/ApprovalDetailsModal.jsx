@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import Modal from '../../../components/shared/Modal.jsx'
 import SealBadge from '../../../components/SealBadge.jsx'
+import ExpensePrintSheet from '../../../components/shared/ExpensePrintSheet.jsx'
 import { formatBDT, formatDate, formatDateTime } from '../../../utils.js'
 import { paymentMethods, approvalPaymentMethods } from '../../../data/dummyData.js'
-import { Send, CheckCircle2, XCircle, FileText, Check, X } from 'lucide-react'
+import { Send, CheckCircle2, XCircle, FileText, Check, X, Printer } from 'lucide-react'
 
 const PAYMENT_LABELS = Object.fromEntries(paymentMethods.map((m) => [m.value, m.label]))
 const today = () => new Date().toISOString().slice(0, 10)
@@ -108,7 +109,19 @@ export default function ApprovalDetailsModal({ request, canApprove, onApprove, o
                 <p className="text-xs uppercase tracking-wide text-ink-muted font-body">Requested Amount</p>
                 <span className="font-display text-2xl">{formatBDT(expense.amount)}</span>
               </div>
-              <SealBadge status={request.status} />
+              <div className="flex items-center gap-2">
+                <SealBadge status={request.status} />
+                {request.status === 'approved' && (
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    title="Print this expense record"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-body rounded-sm border border-hairline text-ink-muted hover:border-brass hover:text-ink transition-colors"
+                  >
+                    <Printer size={13} /> Print
+                  </button>
+                )}
+              </div>
             </div>
 
             {request.approved_amount != null && (
@@ -316,6 +329,8 @@ export default function ApprovalDetailsModal({ request, canApprove, onApprove, o
           </p>
         )}
       </div>
+
+      {request.status === 'approved' && expense && <ExpensePrintSheet expense={expense} />}
     </Modal>
   )
 }

@@ -7,23 +7,26 @@ const CURRENT_MONTH = new Date().toISOString().slice(0, 7)
 
 export default function ExpenseStatsCards({ expenses }) {
   const stats = useMemo(() => {
-    const total = expenses.reduce((sum, e) => sum + e.amount, 0)
+    // Only approved (or paid, which follows approval) expenses are financial
+    // records — pending, rejected, and draft requests must never contribute
+    // to a currency total. The requested amount is never used here; only the
+    // amount actually approved counts.
+    const approved = expenses.filter((e) => e.approved_amount != null)
     const pending = expenses.filter((e) => e.status === 'pending_approval')
-    const approved = expenses.filter((e) => e.status === 'approved' || e.status === 'paid')
     const rejected = expenses.filter((e) => e.status === 'rejected')
-    const thisMonth = expenses.filter((e) => e.expense_date.startsWith(CURRENT_MONTH))
+    const thisMonthApproved = approved.filter((e) => e.expense_date.startsWith(CURRENT_MONTH))
 
     return {
-      total,
+      total: approved.reduce((sum, e) => sum + e.approved_amount, 0),
       totalCount: expenses.length,
       pendingTotal: pending.reduce((s, e) => s + e.amount, 0),
       pendingCount: pending.length,
-      approvedTotal: approved.reduce((s, e) => s + e.amount, 0),
+      approvedTotal: approved.reduce((s, e) => s + e.approved_amount, 0),
       approvedCount: approved.length,
       rejectedTotal: rejected.reduce((s, e) => s + e.amount, 0),
       rejectedCount: rejected.length,
-      monthTotal: thisMonth.reduce((s, e) => s + e.amount, 0),
-      monthCount: thisMonth.length
+      monthTotal: thisMonthApproved.reduce((s, e) => s + e.approved_amount, 0),
+      monthCount: thisMonthApproved.length
     }
   }, [expenses])
 

@@ -44,3 +44,25 @@ body {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Printable expense record: isolate #expense-print-sheet on the page and
+   hide everything else (app chrome, modal backdrop, buttons) while printing. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #expense-print-sheet,
+  #expense-print-sheet * {
+    visibility: visible;
+  }
+  #expense-print-sheet {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+  @page {
+    size: A4;
+    margin: 18mm;
+  }
+}

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Modal from '../../../components/shared/Modal.jsx'
 import { validateExpense, hasErrors } from '../utils/validateExpense.js'
 import { Send, UploadCloud, FileText } from 'lucide-react'
-import CategoryCombobox from './CategoryCombobox.jsx'
+import ItemCombobox from './ItemCombobox.jsx'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -16,7 +16,7 @@ const emptyForm = {
   remarks: ''
 }
 
-export default function ExpenseFormModal({ expense, categories, onSubmit, onClose }) {
+export default function ExpenseFormModal({ expense, categories, catalogue, onCreateItem, onSubmit, onClose }) {
   const isEdit = Boolean(expense)
   const [values, setValues] = useState(() =>
     isEdit
@@ -37,6 +37,17 @@ export default function ExpenseFormModal({ expense, categories, onSubmit, onClos
   function update(field, value) {
     setValues((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }))
+  }
+
+  function handleSelectItem(item) {
+    setValues((prev) => ({ ...prev, title: item.name, category: item.category }))
+    setErrors((prev) => ({ ...prev, title: undefined, category: undefined }))
+  }
+
+  function handleCreateItem(name, category) {
+    onCreateItem(name, category)
+    setValues((prev) => ({ ...prev, title: name, category }))
+    setErrors((prev) => ({ ...prev, title: undefined, category: undefined }))
   }
 
   function handleAttachment(e) {
@@ -82,16 +93,14 @@ export default function ExpenseFormModal({ expense, categories, onSubmit, onClos
     >
       <form onSubmit={handleFormSubmit} noValidate className="space-y-4">
         <div>
-          <label className={labelClass} htmlFor="title">Expense Title</label>
-          <input
-            id="title"
-            type="text"
-            className={inputClass}
+          <ItemCombobox
+            catalogue={catalogue}
+            categories={categories}
             value={values.title}
-            onChange={(e) => update('title', e.target.value)}
-            placeholder="e.g. Office electricity bill — August"
+            onSelectItem={handleSelectItem}
+            onCreateItem={handleCreateItem}
+            error={errors.title}
           />
-          {errors.title && <p className={errorClass}>{errors.title}</p>}
         </div>
 
         <div>
@@ -108,12 +117,14 @@ export default function ExpenseFormModal({ expense, categories, onSubmit, onClos
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <CategoryCombobox
-              categories={categories}
-              value={values.category}
-              onChange={(name) => update('category', name)}
-              error={errors.category}
-            />
+            <label className={labelClass}>Category</label>
+            <div className={`${inputClass} bg-paper/60 text-ink-muted cursor-not-allowed`}>
+              {values.category || 'Select an item above first'}
+            </div>
+            <p className="text-[11px] text-ink-muted font-body mt-1">
+              Assigned automatically from the selected item.
+            </p>
+            {errors.category && <p className={errorClass}>{errors.category}</p>}
           </div>
 
           <div>

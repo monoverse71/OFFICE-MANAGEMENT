@@ -12,6 +12,7 @@ import StaffPage from './pages/StaffPage.jsx'
 import PlaceholderPage from './pages/PlaceholderPage.jsx'
 import { formatBDT } from './utils.js'
 import { nextEmployeeId } from './features/staff/utils/staffFilters.js'
+import { usePersistentState } from './hooks/usePersistentState.js'
 import {
   office,
   currentUser,
@@ -19,10 +20,11 @@ import {
   expenses as initialExpenses,
   approvalRequests as initialApprovalRequests,
   tasks as initialTasks,
-  inventoryAlerts,
+  inventoryAlerts as initialInventoryAlerts,
   notifications as initialNotifications,
   activityFeed as initialActivityFeed,
   staff as initialStaff,
+  itemCatalogue as initialItemCatalogue,
   activeDocuments
 } from './data/dummyData.js'
 
@@ -32,12 +34,14 @@ function makeId(prefix) {
 
 export default function App() {
   const [role, setRole] = useState(currentUser.role)
-  const [expenses, setExpenses] = useState(initialExpenses)
-  const [approvalRequests, setApprovalRequests] = useState(initialApprovalRequests)
-  const [taskList, setTaskList] = useState(initialTasks)
-  const [notifications, setNotifications] = useState(initialNotifications)
-  const [activityLog, setActivityLog] = useState(initialActivityFeed)
-  const [staffList, setStaffList] = useState(initialStaff)
+  const [expenses, setExpenses] = usePersistentState('expenses', initialExpenses)
+  const [approvalRequests, setApprovalRequests] = usePersistentState('approvalRequests', initialApprovalRequests)
+  const [taskList, setTaskList] = usePersistentState('tasks', initialTasks)
+  const [notifications, setNotifications] = usePersistentState('notifications', initialNotifications)
+  const [activityLog, setActivityLog] = usePersistentState('activityLog', initialActivityFeed)
+  const [staffList, setStaffList] = usePersistentState('staff', initialStaff)
+  const [inventoryAlerts] = usePersistentState('inventory', initialInventoryAlerts)
+  const [itemCatalogue, setItemCatalogue] = usePersistentState('itemCatalogue', initialItemCatalogue)
 
   const canApprove = role === 'Chairman' || role === 'Vice Chairman' || role === 'Super Admin'
 
@@ -87,6 +91,18 @@ export default function App() {
       { id: makeId('ntf'), title, message, is_read: false, created_at: new Date().toISOString() },
       ...prev
     ])
+  }
+
+  // Saves a new item → category mapping to the master catalogue so the
+  // same item auto-assigns its category every time it's selected again.
+  // Reusable later by Inventory, Purchase, and Reports — same shape.
+  function handleCreateCatalogueItem(name, category) {
+    const trimmed = name.trim()
+    if (!trimmed || !category) return
+    setItemCatalogue((prev) => {
+      if (prev.some((it) => it.name.toLowerCase() === trimmed.toLowerCase())) return prev
+      return [...prev, { id: makeId('itm'), name: trimmed, category }]
+    })
   }
 
   function handleAddExpense(data, submitForApproval) {
@@ -196,7 +212,9 @@ export default function App() {
               approved_amount: approvedAmount,
               payment_method: paymentMethod,
               payment_date: paymentDate,
-              approval_note: note
+              approval_note: note,
+              approved_by: currentUser.full_name,
+              approved_at: now
             }
           : e
       )
@@ -302,7 +320,7 @@ export default function App() {
             role={role}
             roles={roles}
             onRoleChange={setRole}
-            dateLabel="13 Jul 2026"
+            dateLabel={new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
           />
         }
       >
@@ -337,6 +355,8 @@ export default function App() {
               onUpdateExpense={handleUpdateExpense}
               onDeleteExpense={handleDeleteExpense}
               onSubmitForApproval={handleSubmitForApproval}
+              catalogue={itemCatalogue}
+              onCreateItem={handleCreateCatalogueItem}
             />
           }
         />
