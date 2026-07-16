@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import logoMark from '../assets/logo-mark.png'
 import {
   LayoutGrid,
   Receipt,
@@ -30,8 +31,8 @@ export default function Sidebar({ officeName }) {
     <aside className="hidden lg:flex lg:flex-col w-64 shrink-0 bg-ink text-paper h-screen sticky top-0">
       <div className="px-6 pt-7 pb-6 border-b border-white/10">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full border-2 border-brass flex items-center justify-center">
-            <span className="font-display text-brass text-sm">A</span>
+          <div className="w-8 h-8 rounded-full border-2 border-brass flex items-center justify-center overflow-hidden bg-paper shrink-0">
+            <img src={logoMark} alt="Apon Niketon Holdings" className="w-full h-full object-cover" />
           </div>
           <div>
             <p className="font-display text-[15px] leading-none tracking-tight">Apon Niketon Holdings</p>
