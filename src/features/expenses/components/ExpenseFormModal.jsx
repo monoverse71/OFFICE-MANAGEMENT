@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Modal from '../../../components/shared/Modal.jsx'
 import { validateExpense, hasErrors } from '../utils/validateExpense.js'
 import { Send, UploadCloud, FileText } from 'lucide-react'
+import CategoryCombobox from './CategoryCombobox.jsx'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -53,7 +54,7 @@ export default function ExpenseFormModal({ expense, categories, onSubmit, onClos
       {
         ...values,
         amount: Number(values.amount),
-        quantity: values.quantity === '' ? null : Number(values.quantity),
+        quantity: values.quantity.trim() === '' ? null : values.quantity.trim(),
         attachment_file_name: attachmentName
       },
       action
@@ -107,27 +108,23 @@ export default function ExpenseFormModal({ expense, categories, onSubmit, onClos
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={labelClass} htmlFor="category">Category</label>
-            <select id="category" className={inputClass} value={values.category} onChange={(e) => update('category', e.target.value)}>
-              <option value="">Select category</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.name}>{c.name}</option>
-              ))}
-            </select>
-            {errors.category && <p className={errorClass}>{errors.category}</p>}
+            <CategoryCombobox
+              categories={categories}
+              value={values.category}
+              onChange={(name) => update('category', name)}
+              error={errors.category}
+            />
           </div>
 
           <div>
             <label className={labelClass} htmlFor="quantity">Quantity (if applicable)</label>
             <input
               id="quantity"
-              type="number"
-              min="0"
-              step="1"
+              type="text"
               className={inputClass}
               value={values.quantity}
               onChange={(e) => update('quantity', e.target.value)}
-              placeholder="Optional"
+              placeholder="e.g. 2 pcs, 10 kg, 5 litre"
             />
           </div>
         </div>

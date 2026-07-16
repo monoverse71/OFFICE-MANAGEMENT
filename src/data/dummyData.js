@@ -49,14 +49,21 @@ export const approvalPaymentMethods = [
   { value: 'cheque', label: 'Cheque' }
 ]
 
+// Examples are guidance only for the category picker's helper text and
+// search matching — they are never stored on an expense record.
 export const expenseCategories = [
-  { id: 'cat-1', name: 'Utilities' },
-  { id: 'cat-2', name: 'Rent' },
-  { id: 'cat-3', name: 'Maintenance' },
-  { id: 'cat-4', name: 'Refreshments' },
-  { id: 'cat-5', name: 'Travel' },
-  { id: 'cat-6', name: 'Courier & Logistics' },
-  { id: 'cat-7', name: 'Marketing' }
+  { id: 'cat-1', name: 'Office Operations', examples: ['Rent', 'Utility Bills', 'Internet', 'Office Rent'] },
+  { id: 'cat-2', name: 'Office Supplies', examples: ['Paper', 'Pen', 'File', 'Tea', 'Coffee', 'Water'] },
+  { id: 'cat-3', name: 'IT & Electronics', examples: ['Laptop', 'Desktop', 'Printer', 'Router', 'CCTV', 'UPS'] },
+  { id: 'cat-4', name: 'Furniture & Fixtures', examples: ['Chair', 'Table', 'Cabinet', 'Shelf', 'Sofa'] },
+  { id: 'cat-5', name: 'Maintenance & Repair', examples: ['AC Servicing', 'Plumbing', 'Electrical Repair', 'Painting'] },
+  { id: 'cat-6', name: 'Transport & Logistics', examples: ['Fuel', 'Courier', 'Delivery Van', 'Toll', 'Parking'] },
+  { id: 'cat-7', name: 'Marketing & Branding', examples: ['Facebook Ads', 'Business Cards', 'Banner', 'Signage'] },
+  { id: 'cat-8', name: 'Legal & Government', examples: ['Trade License', 'VAT', 'Notary', 'Government Fees'] },
+  { id: 'cat-9', name: 'HR & Administration', examples: ['Recruitment', 'Training', 'Staff Welfare', 'ID Cards'] },
+  { id: 'cat-10', name: 'Financial Charges', examples: ['Bank Charges', 'Loan Interest', 'Transaction Fees'] },
+  { id: 'cat-11', name: 'Hospitality & Entertainment', examples: ['Client Lunch', 'Refreshments', 'Gifts', 'Events'] },
+  { id: 'cat-12', name: 'Miscellaneous', examples: ['Other', 'Unclassified', 'Emergency Purchase'] }
 ]
 
 export const expenses = []

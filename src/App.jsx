@@ -41,8 +41,12 @@ export default function App() {
 
   const canApprove = role === 'Chairman' || role === 'Vice Chairman' || role === 'Super Admin'
 
+  // Only expenses that have cleared approval count toward the Dashboard's
+  // financial KPIs — a pending or rejected request must never move this
+  // number. Once approved, the *approved* amount is what's counted (the
+  // requested amount is preserved separately and never used here).
   const monthTotal = useMemo(
-    () => expenses.reduce((sum, e) => sum + e.amount, 0),
+    () => expenses.reduce((sum, e) => sum + (e.approved_amount != null ? e.approved_amount : 0), 0),
     [expenses]
   )
 
