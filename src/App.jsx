@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
@@ -9,8 +9,9 @@ import TasksPage from './pages/TasksPage.jsx'
 import NotificationsPage from './pages/NotificationsPage.jsx'
 import ActivityLogPage from './pages/ActivityLogPage.jsx'
 import StaffPage from './pages/StaffPage.jsx'
+import SettingsPage from './pages/SettingsPage.jsx'
 import PlaceholderPage from './pages/PlaceholderPage.jsx'
-import { formatBDT } from './utils.js'
+import { formatBDT, configureFormatting } from './utils.js'
 import { nextEmployeeId } from './features/staff/utils/staffFilters.js'
 import { nextInventoryId } from './features/inventory/utils/inventoryFilters.js'
 import { usePersistentState } from './hooks/usePersistentState.js'
@@ -27,6 +28,8 @@ import {
   activityFeed as initialActivityFeed,
   staff as initialStaff,
   itemCatalogue as initialItemCatalogue,
+  defaultCompanySettings,
+  defaultSystemSettings,
   activeDocuments
 } from './data/dummyData.js'
 
@@ -45,6 +48,32 @@ export default function App() {
   const [inventoryAlerts] = usePersistentState('inventory', initialInventoryAlerts)
   const [inventoryItems, setInventoryItems] = usePersistentState('inventoryItems', initialInventoryItems)
   const [itemCatalogue, setItemCatalogue] = usePersistentState('itemCatalogue', initialItemCatalogue)
+  const [companySettings, setCompanySettings] = usePersistentState('companySettings', defaultCompanySettings)
+  const [systemSettings, setSystemSettings] = usePersistentState('systemSettings', defaultSystemSettings)
+
+  // System Settings take effect immediately, everywhere formatBDT/formatDate/
+  // formatDateTime are used, without touching any of those call sites.
+  useEffect(() => {
+    configureFormatting({
+      currency: systemSettings.currency,
+      dateFormat: systemSettings.dateFormat,
+      timeFormat: systemSettings.timeFormat,
+      timezone: systemSettings.timezone
+    })
+  }, [systemSettings])
+
+  // Company Settings drive the browser tab title and favicon live.
+  useEffect(() => {
+    document.title = `${companySettings.name} – Office Management System`
+  }, [companySettings.name])
+
+  useEffect(() => {
+    if (!companySettings.logo) return
+    const existing = document.querySelectorAll('link[rel="icon"]')
+    existing.forEach((link) => {
+      link.setAttribute('href', companySettings.logo)
+    })
+  }, [companySettings.logo])
 
   const canApprove = role === 'Chairman' || role === 'Vice Chairman' || role === 'Super Admin'
 
@@ -83,6 +112,17 @@ export default function App() {
         }
       }),
     [pendingApprovalRequests, expenses]
+  )
+
+  const totalRecords = useMemo(
+    () =>
+      expenses.length +
+      approvalRequests.length +
+      inventoryItems.length +
+      staffList.length +
+      taskList.length +
+      notifications.length,
+    [expenses, approvalRequests, inventoryItems, staffList, taskList, notifications]
   )
 
   function pushActivity(actor, action, detail) {
@@ -394,12 +434,72 @@ export default function App() {
     }
   }
 
+  function handleSaveCompanySettings(data) {
+    setCompanySettings(data)
+    pushActivity(role, 'update', 'Updated Company Settings')
+  }
+
+  function handleSaveSystemSettings(data) {
+    setSystemSettings(data)
+    pushActivity(role, 'update', 'Updated System Settings')
+  }
+
+  // Restores every module from a validated backup file in one atomic pass.
+  function handleRestoreBackup(data) {
+    setExpenses(data.expenses)
+    setApprovalRequests(data.approvalRequests)
+    setInventoryItems(data.inventoryItems)
+    setStaffList(data.staff)
+    setTaskList(data.tasks)
+    setNotifications(data.notifications)
+    setCompanySettings(data.companySettings)
+    setSystemSettings(data.systemSettings)
+    setItemCatalogue(data.itemCatalogue)
+    pushActivity(role, 'update', 'Restored application data from a backup file')
+  }
+
+  function handleDataAction(key) {
+    if (key === 'resetDemo') {
+      setExpenses(initialExpenses)
+      setApprovalRequests(initialApprovalRequests)
+      setInventoryItems(initialInventoryItems)
+      setStaffList(initialStaff)
+      setTaskList(initialTasks)
+      setNotifications(initialNotifications)
+      setActivityLog(initialActivityFeed)
+      setItemCatalogue(initialItemCatalogue)
+      setCompanySettings(defaultCompanySettings)
+      setSystemSettings(defaultSystemSettings)
+      return
+    }
+    if (key === 'clearExpenses') {
+      setExpenses([])
+      pushActivity(role, 'delete', 'Cleared all expense records')
+      return
+    }
+    if (key === 'clearInventory') {
+      setInventoryItems([])
+      pushActivity(role, 'delete', 'Cleared all inventory items')
+      return
+    }
+    if (key === 'clearNotifications') {
+      setNotifications([])
+      return
+    }
+    if (key === 'clearTasks') {
+      setTaskList([])
+      pushActivity(role, 'delete', 'Cleared all tasks')
+    }
+  }
+
   return (
     <Routes>
       <Route
         element={
           <Layout
-            officeName={office.name}
+            officeName={companySettings.address || office.name}
+            companyName={companySettings.name}
+            logoUrl={companySettings.logo}
             userName={currentUser.full_name}
             role={role}
             roles={roles}
@@ -441,6 +541,7 @@ export default function App() {
               onSubmitForApproval={handleSubmitForApproval}
               catalogue={itemCatalogue}
               onCreateItem={handleCreateCatalogueItem}
+              companySettings={companySettings}
             />
           }
         />
@@ -454,6 +555,7 @@ export default function App() {
               canApprove={canApprove}
               onApprove={handleApproveRequest}
               onReject={handleRejectRequest}
+              companySettings={companySettings}
             />
           }
         />
@@ -505,9 +607,25 @@ export default function App() {
         <Route
           path="settings"
           element={
-            <PlaceholderPage
-              title="Settings"
-              message="Office profile, roles and permissions will be configured here."
+            <SettingsPage
+              companySettings={companySettings}
+              onSaveCompanySettings={handleSaveCompanySettings}
+              systemSettings={systemSettings}
+              onSaveSystemSettings={handleSaveSystemSettings}
+              appState={{
+                expenses,
+                approvalRequests,
+                inventoryItems,
+                staff: staffList,
+                tasks: taskList,
+                notifications,
+                companySettings,
+                systemSettings,
+                itemCatalogue
+              }}
+              onRestoreBackup={handleRestoreBackup}
+              onDataAction={handleDataAction}
+              totalRecords={totalRecords}
             />
           }
         />

@@ -9,7 +9,7 @@ import { Send, CheckCircle2, XCircle, FileText, Check, X, Printer } from 'lucide
 const PAYMENT_LABELS = Object.fromEntries(paymentMethods.map((m) => [m.value, m.label]))
 const today = () => new Date().toISOString().slice(0, 10)
 
-export default function ApprovalDetailsModal({ request, canApprove, onApprove, onReject, onClose }) {
+export default function ApprovalDetailsModal({ request, canApprove, companySettings, onApprove, onReject, onClose }) {
   const expense = request.expense
   const [mode, setMode] = useState(null) // null | 'approve' | 'reject'
 
@@ -330,7 +330,9 @@ export default function ApprovalDetailsModal({ request, canApprove, onApprove, o
         )}
       </div>
 
-      {request.status === 'approved' && expense && <ExpensePrintSheet expense={expense} />}
+      {request.status === 'approved' && expense && (
+        <ExpensePrintSheet expense={expense} companyName={companySettings?.name} companyLogo={companySettings?.logo} />
+      )}
     </Modal>
   )
 }

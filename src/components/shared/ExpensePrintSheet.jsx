@@ -3,15 +3,18 @@ import { formatBDT, formatDate } from '../../utils.js'
 
 const PAYMENT_LABELS = Object.fromEntries(paymentMethods.map((m) => [m.value, m.label]))
 
-export default function ExpensePrintSheet({ expense }) {
+export default function ExpensePrintSheet({ expense, companyName, companyLogo }) {
   if (!expense) return null
 
   return (
     <div id="expense-print-sheet" className="hidden print:block bg-white text-black p-10 font-body">
-      <div className="flex items-baseline justify-between border-b border-black/30 pb-4 mb-6">
-        <div>
-          <p className="font-display text-xl">{office.name}</p>
-          <p className="text-sm mt-0.5">Expense Approval Record</p>
+      <div className="flex items-center justify-between border-b border-black/30 pb-4 mb-6">
+        <div className="flex items-center gap-3">
+          {companyLogo && <img src={companyLogo} alt={companyName} className="w-10 h-10 object-cover rounded-full" />}
+          <div>
+            <p className="font-display text-xl">{companyName || office.name}</p>
+            <p className="text-sm mt-0.5">Expense Approval Record</p>
+          </div>
         </div>
         <p className="font-mono text-sm">{expense.id}</p>
       </div>

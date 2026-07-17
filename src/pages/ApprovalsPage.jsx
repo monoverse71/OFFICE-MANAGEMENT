@@ -9,7 +9,7 @@ import {
   sortByRequestedDate
 } from '../features/approvals/utils/approvalFilters.js'
 
-export default function ApprovalsPage({ requests, expenses, canApprove, onApprove, onReject }) {
+export default function ApprovalsPage({ requests, expenses, canApprove, onApprove, onReject, companySettings }) {
   const [filters, setFilters] = useState(DEFAULT_APPROVAL_FILTERS)
   const [reviewing, setReviewing] = useState(null)
 
@@ -42,6 +42,7 @@ export default function ApprovalsPage({ requests, expenses, canApprove, onApprov
         <ApprovalDetailsModal
           request={activeRequest}
           canApprove={canApprove}
+          companySettings={companySettings}
           onApprove={onApprove}
           onReject={onReject}
           onClose={() => setReviewing(null)}

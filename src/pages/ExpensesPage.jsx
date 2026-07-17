@@ -17,7 +17,8 @@ export default function ExpensesPage({
   onDeleteExpense,
   onSubmitForApproval,
   catalogue,
-  onCreateItem
+  onCreateItem,
+  companySettings
 }) {
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [sortBy, setSortBy] = useState('expense_date')
@@ -96,7 +97,7 @@ export default function ExpensesPage({
         />
       )}
 
-      {viewTarget && <ExpenseDetailsModal expense={viewTarget} onClose={() => setViewTarget(null)} />}
+      {viewTarget && <ExpenseDetailsModal expense={viewTarget} companySettings={companySettings} onClose={() => setViewTarget(null)} />}
 
       {deleteTarget && (
         <ConfirmDialog

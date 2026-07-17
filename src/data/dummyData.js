@@ -9,6 +9,51 @@ export const office = {
   currency: 'BDT'
 }
 
+// Editable in Settings → Company Settings. Seeded from the office record
+// above, but stored and persisted separately since it's user-editable.
+export const defaultCompanySettings = {
+  name: 'Apon Niketon Holdings',
+  logo: null, // data URL once uploaded via Settings; falls back to the bundled mark
+  address: 'Head Office, Dhaka, Bangladesh',
+  phone: '',
+  email: '',
+  website: '',
+  description: ''
+}
+
+// Editable in Settings → System Settings.
+export const defaultSystemSettings = {
+  currency: '৳',
+  dateFormat: 'DD MMM YYYY',
+  timeFormat: '24',
+  timezone: 'Asia/Dhaka'
+}
+
+export const currencyOptions = [
+  { value: '৳', label: 'BDT — ৳' },
+  { value: '$', label: 'USD — $' },
+  { value: '€', label: 'EUR — €' },
+  { value: '£', label: 'GBP — £' }
+]
+
+export const dateFormatOptions = [
+  { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY', example: '17/07/2026' },
+  { value: 'DD MMM YYYY', label: 'DD MMM YYYY', example: '17 Jul 2026' },
+  { value: 'MMMM DD, YYYY', label: 'MMMM DD, YYYY', example: 'July 17, 2026' }
+]
+
+export const timeFormatOptions = [
+  { value: '12', label: '12 Hour' },
+  { value: '24', label: '24 Hour' }
+]
+
+export const timezoneOptions = [
+  { value: 'Asia/Dhaka', label: 'Asia/Dhaka (GMT+6)' },
+  { value: 'Asia/Kolkata', label: 'Asia/Kolkata (GMT+5:30)' },
+  { value: 'Asia/Dubai', label: 'Asia/Dubai (GMT+4)' },
+  { value: 'UTC', label: 'UTC' }
+]
+
 export const currentUser = {
   id: 'usr-001',
   full_name: 'Jihad Rahman',

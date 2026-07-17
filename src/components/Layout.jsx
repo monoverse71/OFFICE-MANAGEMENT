@@ -2,10 +2,10 @@ import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
 import Topbar from './Topbar.jsx'
 
-export default function Layout({ officeName, userName, role, roles, onRoleChange, dateLabel }) {
+export default function Layout({ officeName, companyName, logoUrl, userName, role, roles, onRoleChange, dateLabel }) {
   return (
     <div className="min-h-screen flex bg-paper">
-      <Sidebar officeName={officeName} />
+      <Sidebar officeName={officeName} companyName={companyName} logoUrl={logoUrl} />
 
       <div className="flex-1 min-w-0">
         <Topbar

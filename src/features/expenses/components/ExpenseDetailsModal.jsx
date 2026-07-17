@@ -30,7 +30,7 @@ function ReceiptPreview({ fileName }) {
   )
 }
 
-export default function ExpenseDetailsModal({ expense, onClose }) {
+export default function ExpenseDetailsModal({ expense, companySettings, onClose }) {
   const isDecided = expense.status === 'approved' || expense.status === 'paid' || expense.status === 'rejected'
   const isApproved = expense.status === 'approved' || expense.status === 'paid'
 
@@ -135,7 +135,9 @@ export default function ExpenseDetailsModal({ expense, onClose }) {
         </div>
       </div>
 
-      {isApproved && <ExpensePrintSheet expense={expense} />}
+      {isApproved && (
+        <ExpensePrintSheet expense={expense} companyName={companySettings?.name} companyLogo={companySettings?.logo} />
+      )}
     </Modal>
   )
 }

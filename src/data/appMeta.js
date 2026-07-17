@@ -1,0 +1,5 @@
+export const APP_NAME = 'Office Management System'
+export const APP_VERSION = '1.0.0'
+export const APP_BUILD = '2026.07.17'
+export const APP_LAST_UPDATED = '2026-07-17'
+export const APP_DEVELOPER = 'In-house Systems Team'
