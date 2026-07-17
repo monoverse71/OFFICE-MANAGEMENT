@@ -12,6 +12,7 @@ import StaffPage from './pages/StaffPage.jsx'
 import PlaceholderPage from './pages/PlaceholderPage.jsx'
 import { formatBDT } from './utils.js'
 import { nextEmployeeId } from './features/staff/utils/staffFilters.js'
+import { nextInventoryId } from './features/inventory/utils/inventoryFilters.js'
 import { usePersistentState } from './hooks/usePersistentState.js'
 import {
   office,
@@ -21,6 +22,7 @@ import {
   approvalRequests as initialApprovalRequests,
   tasks as initialTasks,
   inventoryAlerts as initialInventoryAlerts,
+  inventoryItems as initialInventoryItems,
   notifications as initialNotifications,
   activityFeed as initialActivityFeed,
   staff as initialStaff,
@@ -41,6 +43,7 @@ export default function App() {
   const [activityLog, setActivityLog] = usePersistentState('activityLog', initialActivityFeed)
   const [staffList, setStaffList] = usePersistentState('staff', initialStaff)
   const [inventoryAlerts] = usePersistentState('inventory', initialInventoryAlerts)
+  const [inventoryItems, setInventoryItems] = usePersistentState('inventoryItems', initialInventoryItems)
   const [itemCatalogue, setItemCatalogue] = usePersistentState('itemCatalogue', initialItemCatalogue)
 
   const canApprove = role === 'Chairman' || role === 'Vice Chairman' || role === 'Super Admin'
@@ -111,7 +114,7 @@ export default function App() {
     const record = {
       id,
       status: submitForApproval ? 'pending_approval' : 'draft',
-      submitted_by: currentUser.full_name,
+      submitted_by: role,
       created_at: now,
       ...data
     }
@@ -191,7 +194,7 @@ export default function App() {
           ? {
               ...r,
               status: 'approved',
-              decided_by: currentUser.full_name,
+              decided_by: role,
               decided_at: now,
               comment: note,
               approved_amount: approvedAmount,
@@ -213,20 +216,20 @@ export default function App() {
               payment_method: paymentMethod,
               payment_date: paymentDate,
               approval_note: note,
-              approved_by: currentUser.full_name,
+              approved_by: role,
               approved_at: now
             }
           : e
       )
     )
     pushActivity(
-      currentUser.full_name,
+      role,
       'approve',
       `Approved expense "${expense ? expense.title : request.expense_id}" — ${formatBDT(approvedAmount)}`
     )
     pushNotification(
       'Expense Approved',
-      `${currentUser.full_name} approved "${expense ? expense.title : request.expense_id}" — ${formatBDT(approvedAmount)}`
+      `${role} approved "${expense ? expense.title : request.expense_id}" — ${formatBDT(approvedAmount)}`
     )
   }
 
@@ -240,17 +243,17 @@ export default function App() {
     setApprovalRequests((prev) =>
       prev.map((r) =>
         r.id === requestId
-          ? { ...r, status: 'rejected', decided_by: currentUser.full_name, decided_at: now, rejection_reason: finalReason }
+          ? { ...r, status: 'rejected', decided_by: role, decided_at: now, rejection_reason: finalReason }
           : r
       )
     )
     setExpenses((prev) =>
       prev.map((e) => (e.id === request.expense_id ? { ...e, status: 'rejected', rejected_reason: finalReason } : e))
     )
-    pushActivity(currentUser.full_name, 'reject', `Rejected expense "${expense ? expense.title : request.expense_id}" — ${finalReason}`)
+    pushActivity(role, 'reject', `Rejected expense "${expense ? expense.title : request.expense_id}" — ${finalReason}`)
     pushNotification(
       'Expense Rejected',
-      `${currentUser.full_name} rejected "${expense ? expense.title : request.expense_id}" — ${finalReason}`
+      `${role} rejected "${expense ? expense.title : request.expense_id}" — ${finalReason}`
     )
   }
 
@@ -295,7 +298,7 @@ export default function App() {
       ...data
     }
     setStaffList((prev) => [record, ...prev])
-    pushActivity(currentUser.full_name, 'create', `Added "${record.full_name}" to the Staff Directory`)
+    pushActivity(role, 'create', `Added "${record.full_name}" to the Staff Directory`)
   }
 
   function handleUpdateStaff(id, data) {
@@ -306,7 +309,88 @@ export default function App() {
     const employee = staffList.find((s) => s.id === id)
     setStaffList((prev) => prev.filter((s) => s.id !== id))
     if (employee) {
-      pushActivity(currentUser.full_name, 'delete', `Removed "${employee.full_name}" from the Staff Directory`)
+      pushActivity(role, 'delete', `Removed "${employee.full_name}" from the Staff Directory`)
+    }
+  }
+
+  // Inventory is a completely independent module — nothing here ever
+  // reads from or writes to the Expenses data.
+  function handleAddInventoryItem(data) {
+    const { opening_quantity, ...rest } = data
+    const now = new Date().toISOString()
+    const record = {
+      id: nextInventoryId(inventoryItems),
+      status: rest.type === 'asset' ? 'available' : undefined,
+      quantity: opening_quantity,
+      created_at: now,
+      ...rest,
+      stock_history: [
+        {
+          id: makeId('sth'),
+          date: now,
+          action: 'initial',
+          added_quantity: opening_quantity,
+          removed_quantity: null,
+          previous_quantity: 0,
+          current_quantity: opening_quantity,
+          notes: 'Opening stock',
+          performed_by: role
+        }
+      ]
+    }
+    setInventoryItems((prev) => [record, ...prev])
+    pushActivity(role, 'create', `Added "${record.name}" to Inventory`)
+  }
+
+  function handleUpdateInventoryItem(id, data) {
+    // Quantity is never editable through this path — only through the
+    // dedicated Add/Remove/Adjust Stock actions.
+    const { quantity, opening_quantity, ...safeData } = data
+    setInventoryItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...safeData } : it)))
+  }
+
+  function handleDeleteInventoryItem(id) {
+    const item = inventoryItems.find((it) => it.id === id)
+    setInventoryItems((prev) => prev.filter((it) => it.id !== id))
+    if (item) {
+      pushActivity(role, 'delete', `Removed "${item.name}" from Inventory`)
+    }
+  }
+
+  function handleStockAction(itemId, mode, value, notes) {
+    const now = new Date().toISOString()
+    let logDetail = null
+
+    setInventoryItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== itemId) return item
+
+        const previous = item.quantity
+        let current
+        if (mode === 'add') current = previous + value
+        else if (mode === 'remove') current = Math.max(0, previous - value)
+        else current = value // adjust: caller supplies the absolute new quantity
+
+        const historyEntry = {
+          id: makeId('sth'),
+          date: now,
+          action: mode,
+          added_quantity: mode === 'add' ? value : mode === 'adjust' && current > previous ? current - previous : null,
+          removed_quantity: mode === 'remove' ? value : mode === 'adjust' && current < previous ? previous - current : null,
+          previous_quantity: previous,
+          current_quantity: current,
+          notes: notes || null,
+          performed_by: role
+        }
+
+        logDetail = `${mode === 'add' ? 'Added' : mode === 'remove' ? 'Removed' : 'Adjusted'} stock for "${item.name}" (${previous} → ${current} ${item.unit})`
+
+        return { ...item, quantity: current, stock_history: [historyEntry, ...(item.stock_history || [])] }
+      })
+    )
+
+    if (logDetail) {
+      pushActivity(role, 'update', logDetail)
     }
   }
 
@@ -374,7 +458,18 @@ export default function App() {
           }
         />
 
-        <Route path="inventory" element={<InventoryPage items={inventoryAlerts} />} />
+        <Route
+          path="inventory"
+          element={
+            <InventoryPage
+              items={inventoryItems}
+              onAddItem={handleAddInventoryItem}
+              onUpdateItem={handleUpdateInventoryItem}
+              onDeleteItem={handleDeleteInventoryItem}
+              onStockAction={handleStockAction}
+            />
+          }
+        />
 
         <Route
           path="staff"

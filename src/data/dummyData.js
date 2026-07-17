@@ -101,6 +101,41 @@ export const itemCatalogue = [
 
 export const expenses = []
 
+// inventory_categories — the Inventory module's own category list. Kept
+// entirely separate from expenseCategories: Inventory is never connected
+// to Expenses, so it needs its own taxonomy.
+export const inventoryCategories = [
+  { id: 'inv-cat-1', name: 'Electronics & IT Equipment', examples: ['Laptop', 'Printer', 'Router', 'Monitor'] },
+  { id: 'inv-cat-2', name: 'Furniture & Fixtures', examples: ['Chair', 'Desk', 'Cabinet', 'Sofa'] },
+  { id: 'inv-cat-3', name: 'Office Supplies', examples: ['Paper', 'Pen', 'File', 'Stapler'] },
+  { id: 'inv-cat-4', name: 'Tools & Equipment', examples: ['Drill', 'Ladder', 'Toolbox'] },
+  { id: 'inv-cat-5', name: 'Kitchen & Pantry', examples: ['Tea', 'Coffee', 'Sugar', 'Water Jar'] },
+  { id: 'inv-cat-6', name: 'Cleaning Supplies', examples: ['Detergent', 'Mop', 'Tissue', 'Broom'] },
+  { id: 'inv-cat-7', name: 'Safety & Security', examples: ['Fire Extinguisher', 'CCTV', 'First Aid Kit'] },
+  { id: 'inv-cat-8', name: 'Miscellaneous', examples: ['Other', 'Unclassified'] }
+]
+
+export const inventoryUnits = [
+  { value: 'pcs', label: 'pcs' },
+  { value: 'kg', label: 'kg' },
+  { value: 'gram', label: 'gram' },
+  { value: 'litre', label: 'litre' },
+  { value: 'packet', label: 'packet' },
+  { value: 'box', label: 'box' },
+  { value: 'roll', label: 'roll' }
+]
+
+export const assetStatuses = [
+  { value: 'available', label: 'Available' },
+  { value: 'assigned', label: 'Assigned' },
+  { value: 'maintenance', label: 'Maintenance' },
+  { value: 'disposed', label: 'Disposed' }
+]
+
+// inventory_items — a completely independent module from Expenses.
+// Managed manually; nothing here is ever created from an expense record.
+export const inventoryItems = []
+
 // approval_requests — one row per submission, linked to its expense.
 // status: 'pending_approval' | 'approved' | 'rejected'
 // Historical decided rows stay in this array permanently — that's the approval history.
