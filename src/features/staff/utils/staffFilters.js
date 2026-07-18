@@ -12,7 +12,7 @@ export const employmentStatuses = [
 
 export function nextEmployeeId(staffList) {
   const nums = staffList
-    .map((s) => parseInt(String(s.id).replace('EMP-', ''), 10))
+    .map((s) => parseInt(String(s.code || s.id).replace('EMP-', ''), 10))
     .filter((n) => !Number.isNaN(n))
   const max = nums.length ? Math.max(...nums) : 1000
   return `EMP-${max + 1}`

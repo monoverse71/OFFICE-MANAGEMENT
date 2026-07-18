@@ -21,7 +21,7 @@ export default function StockHistoryModal({ item, onClose }) {
   const history = item.stock_history || []
 
   return (
-    <Modal title="Stock History" subtitle={`${item.name} · ${item.id}`} onClose={onClose} width="max-w-xl">
+    <Modal title="Stock History" subtitle={`${item.name} · ${item.code || item.id}`} onClose={onClose} width="max-w-xl">
       {history.length === 0 ? (
         <EmptyState icon={History} title="No stock movements yet" message="Add, remove, or adjust stock to start building this item's history." />
       ) : (

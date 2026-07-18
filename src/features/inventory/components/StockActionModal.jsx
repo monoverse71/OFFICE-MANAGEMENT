@@ -44,7 +44,7 @@ export default function StockActionModal({ item, mode, onConfirm, onClose }) {
   const labelClass = 'block text-xs font-body uppercase tracking-wide text-ink-muted mb-1.5'
 
   return (
-    <Modal title={config.title} subtitle={`${item.name} · ${item.id}`} onClose={onClose} width="max-w-sm">
+    <Modal title={config.title} subtitle={`${item.name} · ${item.code || item.id}`} onClose={onClose} width="max-w-sm">
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
         <div className="flex items-center justify-between px-3 py-2.5 bg-paper border border-hairline rounded-sm text-sm">
           <span className="text-ink-muted font-body">Current Quantity</span>

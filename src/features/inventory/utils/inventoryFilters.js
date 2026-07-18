@@ -7,7 +7,7 @@ export const DEFAULT_INVENTORY_FILTERS = {
 
 export function nextInventoryId(items) {
   const nums = items
-    .map((it) => parseInt(String(it.id).replace('INV-', ''), 10))
+    .map((it) => parseInt(String(it.code || it.id).replace('INV-', ''), 10))
     .filter((n) => !Number.isNaN(n))
   const max = nums.length ? Math.max(...nums) : 2000
   return `INV-${max + 1}`

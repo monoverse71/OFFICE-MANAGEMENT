@@ -69,7 +69,7 @@ export default function InventoryFormModal({ item, categories, onSubmit, onClose
   return (
     <Modal
       title={isEdit ? 'Edit Inventory Item' : 'Add Inventory Item'}
-      subtitle={isEdit ? `Record ${item.id}` : 'Manually add a new asset or consumable'}
+      subtitle={isEdit ? `Record ${item.code || item.id}` : 'Manually add a new asset or consumable'}
       onClose={onClose}
       width="max-w-xl"
     >

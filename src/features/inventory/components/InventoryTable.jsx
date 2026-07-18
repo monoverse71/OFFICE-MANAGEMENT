@@ -67,7 +67,7 @@ export default function InventoryTable({
           <tbody>
             {rows.map((it) => (
               <tr key={it.id} className="border-b border-hairline/70 last:border-0 hover:bg-paper/60 transition-colors">
-                <td className="px-4 py-3 font-mono text-xs text-ink-muted whitespace-nowrap">{it.id}</td>
+                <td className="px-4 py-3 font-mono text-xs text-ink-muted whitespace-nowrap">{it.code || it.id}</td>
                 <td className="px-4 py-3 font-body max-w-[200px] truncate">{it.name}</td>
                 <td className="px-4 py-3 font-body text-ink-muted whitespace-nowrap">{it.category}</td>
                 <td className="px-4 py-3 font-body text-ink-muted capitalize whitespace-nowrap">{it.type}</td>

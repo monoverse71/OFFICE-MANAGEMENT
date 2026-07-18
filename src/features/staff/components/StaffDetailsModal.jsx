@@ -5,7 +5,7 @@ import { formatDate } from '../../../utils.js'
 
 export default function StaffDetailsModal({ employee, onClose }) {
   return (
-    <Modal title={employee.full_name} subtitle={`Record ${employee.id}`} onClose={onClose} width="max-w-lg">
+    <Modal title={employee.full_name} subtitle={`Record ${employee.code || employee.id}`} onClose={onClose} width="max-w-lg">
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

@@ -72,7 +72,7 @@ export default function StaffFormModal({ employee, onSubmit, onClose }) {
   return (
     <Modal
       title={isEdit ? 'Edit Employee' : 'Add Employee'}
-      subtitle={isEdit ? `Record ${employee.id}` : 'Add a new employee to the directory'}
+      subtitle={isEdit ? `Record ${employee.code || employee.id}` : 'Add a new employee to the directory'}
       onClose={onClose}
       width="max-w-xl"
     >

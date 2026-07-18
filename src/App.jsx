@@ -15,6 +15,12 @@ import { formatBDT, configureFormatting } from './utils.js'
 import { nextEmployeeId } from './features/staff/utils/staffFilters.js'
 import { nextInventoryId } from './features/inventory/utils/inventoryFilters.js'
 import { usePersistentState } from './hooks/usePersistentState.js'
+import { useSupabaseCollection } from './hooks/useSupabaseCollection.js'
+import { useSupabaseSingleton } from './hooks/useSupabaseSingleton.js'
+import { useSupabaseInventory } from './hooks/useSupabaseInventory.js'
+import { useOnlineStatus } from './hooks/useOnlineStatus.js'
+import { migrateLocalStorageToSupabase } from './lib/migrateLocalStorage.js'
+import { isSupabaseConfigured } from './lib/supabaseClient.js'
 import {
   office,
   currentUser,
@@ -33,23 +39,37 @@ import {
   activeDocuments
 } from './data/dummyData.js'
 
-function makeId(prefix) {
-  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+function makeId() {
+  return crypto.randomUUID()
 }
 
 export default function App() {
+  const [bootStatus, setBootStatus] = useState(isSupabaseConfigured ? 'migrating' : 'ready')
+  const isOnline = useOnlineStatus()
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return
+    let cancelled = false
+    migrateLocalStorageToSupabase().finally(() => {
+      if (!cancelled) setBootStatus('ready')
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const [role, setRole] = useState(currentUser.role)
-  const [expenses, setExpenses] = usePersistentState('expenses', initialExpenses)
-  const [approvalRequests, setApprovalRequests] = usePersistentState('approvalRequests', initialApprovalRequests)
-  const [taskList, setTaskList] = usePersistentState('tasks', initialTasks)
-  const [notifications, setNotifications] = usePersistentState('notifications', initialNotifications)
-  const [activityLog, setActivityLog] = usePersistentState('activityLog', initialActivityFeed)
-  const [staffList, setStaffList] = usePersistentState('staff', initialStaff)
+  const [expenses, setExpenses, expensesStatus] = useSupabaseCollection('expenses', initialExpenses)
+  const [approvalRequests, setApprovalRequests] = useSupabaseCollection('expense_approvals', initialApprovalRequests)
+  const [taskList, setTaskList] = useSupabaseCollection('tasks', initialTasks)
+  const [notifications, setNotifications] = useSupabaseCollection('notifications', initialNotifications)
+  const [activityLog, setActivityLog] = useSupabaseCollection('activity_logs', initialActivityFeed)
+  const [staffList, setStaffList] = useSupabaseCollection('staff', initialStaff)
   const [inventoryAlerts] = usePersistentState('inventory', initialInventoryAlerts)
-  const [inventoryItems, setInventoryItems] = usePersistentState('inventoryItems', initialInventoryItems)
-  const [itemCatalogue, setItemCatalogue] = usePersistentState('itemCatalogue', initialItemCatalogue)
-  const [companySettings, setCompanySettings] = usePersistentState('companySettings', defaultCompanySettings)
-  const [systemSettings, setSystemSettings] = usePersistentState('systemSettings', defaultSystemSettings)
+  const [inventoryItems, setInventoryItems] = useSupabaseInventory(initialInventoryItems)
+  const [itemCatalogue, setItemCatalogue] = useSupabaseCollection('item_catalogue', initialItemCatalogue)
+  const [companySettings, setCompanySettings] = useSupabaseSingleton('company_settings', defaultCompanySettings)
+  const [systemSettings, setSystemSettings] = useSupabaseSingleton('system_settings', defaultSystemSettings)
 
   // System Settings take effect immediately, everywhere formatBDT/formatDate/
   // formatDateTime are used, without touching any of those call sites.
@@ -333,7 +353,8 @@ export default function App() {
 
   function handleAddStaff(data) {
     const record = {
-      id: nextEmployeeId(staffList),
+      id: makeId(),
+      code: nextEmployeeId(staffList),
       created_at: new Date().toISOString(),
       ...data
     }
@@ -359,7 +380,8 @@ export default function App() {
     const { opening_quantity, ...rest } = data
     const now = new Date().toISOString()
     const record = {
-      id: nextInventoryId(inventoryItems),
+      id: makeId(),
+      code: nextInventoryId(inventoryItems),
       status: rest.type === 'asset' ? 'available' : undefined,
       quantity: opening_quantity,
       created_at: now,
@@ -492,8 +514,26 @@ export default function App() {
     }
   }
 
+  if (bootStatus === 'migrating') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-paper">
+        <div className="text-center">
+          <p className="font-display text-lg text-ink">Setting up your workspace…</p>
+          <p className="text-sm text-ink-muted font-body mt-1">Connecting to Supabase and syncing existing data.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <Routes>
+    <>
+      {!isOnline && (
+        <div className="fixed top-0 inset-x-0 z-50 bg-rust text-paper text-center text-sm font-body py-1.5">
+          You're offline — changes are kept on this device and nothing is lost, but they won't sync until your
+          connection comes back.
+        </div>
+      )}
+      <Routes>
       <Route
         element={
           <Layout
@@ -636,5 +676,6 @@ export default function App() {
         />
       </Route>
     </Routes>
+    </>
   )
 }

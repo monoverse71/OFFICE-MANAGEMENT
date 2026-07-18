@@ -26,7 +26,7 @@ export default function StaffTable({ rows, onView, onEdit, onDelete }) {
           <tbody>
             {rows.map((s) => (
               <tr key={s.id} className="border-b border-hairline/70 last:border-0 hover:bg-paper/60 transition-colors">
-                <td className="px-4 py-3 font-mono text-xs text-ink-muted whitespace-nowrap">{s.id}</td>
+                <td className="px-4 py-3 font-mono text-xs text-ink-muted whitespace-nowrap">{s.code || s.id}</td>
                 <td className="px-4 py-3">
                   <Avatar name={s.full_name} photoUrl={s.photo_url} size={28} />
                 </td>
