@@ -88,7 +88,7 @@ export default function StaffFormModal({ employee, onSubmit, onClose }) {
           </label>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass} htmlFor="full_name">Full Name</label>
             <input id="full_name" type="text" className={inputClass} value={values.full_name} onChange={(e) => update('full_name', e.target.value)} placeholder="e.g. Nasrin Akter" />
@@ -101,7 +101,7 @@ export default function StaffFormModal({ employee, onSubmit, onClose }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass} htmlFor="email">Email</label>
             <input id="email" type="email" className={inputClass} value={values.email} onChange={(e) => update('email', e.target.value)} placeholder="Optional" />
@@ -117,7 +117,7 @@ export default function StaffFormModal({ employee, onSubmit, onClose }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass} htmlFor="designation">Designation</label>
             <input id="designation" type="text" className={inputClass} value={values.designation} onChange={(e) => update('designation', e.target.value)} placeholder="e.g. Office Manager" />

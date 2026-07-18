@@ -26,7 +26,7 @@ export default function SystemSettingsSection({ settings, onSave }) {
   return (
     <SettingsSection title="System Settings" description="Applies immediately across dates, amounts, and times throughout the app">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass} htmlFor="currency">Currency</label>
             <select id="currency" className={inputClass} value={values.currency} onChange={(e) => update('currency', e.target.value)}>

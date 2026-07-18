@@ -80,7 +80,7 @@ export default function InventoryFormModal({ item, categories, onSubmit, onClose
           {errors.name && <p className={errorClass}>{errors.name}</p>}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <CategoryCombobox categories={categories} value={values.category} onChange={(name) => update('category', name)} error={errors.category} />
           </div>
@@ -94,7 +94,7 @@ export default function InventoryFormModal({ item, categories, onSubmit, onClose
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass} htmlFor="brand">Brand</label>
             <input id="brand" type="text" className={inputClass} value={values.brand} onChange={(e) => update('brand', e.target.value)} placeholder="Optional" />
@@ -105,7 +105,7 @@ export default function InventoryFormModal({ item, categories, onSubmit, onClose
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass} htmlFor="unit">Unit</label>
             <select id="unit" className={inputClass} value={values.unit} onChange={(e) => update('unit', e.target.value)}>
@@ -152,7 +152,7 @@ export default function InventoryFormModal({ item, categories, onSubmit, onClose
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass} htmlFor="location">Store Location</label>
             <input id="location" type="text" className={inputClass} value={values.location} onChange={(e) => update('location', e.target.value)} placeholder="e.g. Head Office, 2nd Floor" />

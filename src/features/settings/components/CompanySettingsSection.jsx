@@ -71,7 +71,7 @@ export default function CompanySettingsSection({ settings, onSave }) {
           <textarea id="company-address" rows={2} className={inputClass} value={values.address} onChange={(e) => update('address', e.target.value)} placeholder="Optional" />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass} htmlFor="company-phone">Phone Number</label>
             <input id="company-phone" type="text" className={inputClass} value={values.phone} onChange={(e) => update('phone', e.target.value)} placeholder="Optional" />

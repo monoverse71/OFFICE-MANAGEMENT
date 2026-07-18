@@ -115,7 +115,7 @@ export default function ExpenseFormModal({ expense, categories, catalogue, onCre
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Category</label>
             <div className={`${inputClass} bg-paper/60 text-ink-muted cursor-not-allowed`}>
@@ -140,7 +140,7 @@ export default function ExpenseFormModal({ expense, categories, catalogue, onCre
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass} htmlFor="amount">Requested Amount (৳)</label>
             <input

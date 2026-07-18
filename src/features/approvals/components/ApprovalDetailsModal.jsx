@@ -228,7 +228,7 @@ export default function ApprovalDetailsModal({ request, canApprove, companySetti
                   Confirm the final amount and how this expense will be paid out.
                 </p>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass} htmlFor="approved_amount">Approved Amount (৳)</label>
                     <input

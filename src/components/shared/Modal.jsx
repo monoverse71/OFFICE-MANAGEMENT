@@ -19,21 +19,21 @@ export default function Modal({ title, subtitle, onClose, children, width = 'max
         aria-label={title}
         className={`relative w-full ${width} my-8 bg-paper-card border border-hairline rounded-sm shadow-card`}
       >
-        <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-hairline">
+        <div className="flex items-start justify-between gap-4 px-4 sm:px-6 py-4 border-b border-hairline">
           <div>
-            <h2 className="font-display text-xl text-ink">{title}</h2>
+            <h2 className="font-display text-lg sm:text-xl text-ink">{title}</h2>
             {subtitle && <p className="text-xs text-ink-muted font-body mt-1">{subtitle}</p>}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="w-7 h-7 shrink-0 flex items-center justify-center rounded-sm text-ink-muted hover:text-ink hover:bg-paper transition-colors"
+            className="w-9 h-9 sm:w-7 sm:h-7 shrink-0 flex items-center justify-center rounded-sm text-ink-muted hover:text-ink hover:bg-paper transition-colors"
           >
             <X size={16} />
           </button>
         </div>
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-4 sm:px-6 py-5">{children}</div>
       </div>
     </div>
   )
